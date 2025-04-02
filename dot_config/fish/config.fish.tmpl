@@ -2,17 +2,33 @@ set -g fish_greeting ""
 
 # Add Homebrew to PATH
 {{ if eq .chezmoi.os "darwin" }}
-    # macOS (Apple Silicon default)
-    if test -d /opt/homebrew
-        eval (/opt/homebrew/bin/brew shellenv)
-    end
+# macOS (Apple Silicon default)
+if test -d /opt/homebrew
+    eval (/opt/homebrew/bin/brew shellenv)
+end
 {{ else if eq .chezmoi.os "linux" }}
-    # Linuxbrew
-    if test -d /home/linuxbrew/.linuxbrew
-        eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
-    end
+# Linuxbrew
+if test -d /home/linuxbrew/.linuxbrew
+    eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+end
 {{ end }}
 
+# Only run in interactive sessions
+if status is-interactive
+    # Check if we're already in Tmux (to avoid nesting)
+    if not set -q TMUX
+        # Detect the terminal emulator
+        set -l parent_process (ps -p (ps -p $fish_pid -o ppid= | string trim) -o comm= | string trim)
+
+        # If the parent process is 'alacritty', start Tmux
+        if string match -q alacritty $parent_process
+            exec tmux
+            # If the parent process is 'wezterm' or 'wezterm-gui', do nothing
+        else if string match -q "wezterm*" $parent_process
+            # No Tmux for Wezterm
+        end
+    end
+end
 # Your aliases and settings
 alias ll="ls -alF"
 alias vim="nvim"

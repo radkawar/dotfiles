@@ -1,0 +1,121 @@
+# -- GENERAL ------------------------------------------------------------------
+
+# Set terminal to use 256 colors
+set-option -g default-terminal "tmux-256color"
+set-option -sa terminal-features ',alacritty:RGB'
+
+# Set prefix key to Ctrl+a (matches Wezterm)
+unbind C-b
+set -g prefix C-a
+bind C-a send-prefix
+
+# Set default shell with Chezmoi templating (migrated from Wezterm)
+set -g default-shell {{ if eq .chezmoi.os "darwin" }}"/opt/homebrew/bin/fish"{{ else if eq .chezmoi.os "linux" }}"/home/linuxbrew/.linuxbrew/bin/fish"{{ else }}"/usr/bin/fish"{{ end }}
+set -g default-command {{ if eq .chezmoi.os "darwin" }}"/opt/homebrew/bin/fish -l"{{ else if eq .chezmoi.os "linux" }}"/home/linuxbrew/.linuxbrew/bin/fish -l"{{ else }}"/usr/bin/fish -l"{{ end }}
+
+# Start window numbering at 1
+set -g base-index 1
+setw -g pane-base-index 1
+set -g renumber-windows on
+
+# Set scrollback history limit
+set -g history-limit 10000
+
+# Set mouse support
+set -g mouse on
+
+# Set shorter escape time for better vim experience
+set -sg escape-time 0
+
+# -- DISPLAY ------------------------------------------------------------------
+
+# Status bar (aligned with Wezterm's Gruvbox colors and right status)
+set -g status-position bottom
+set -g status-style bg="#282828",fg="#ebdbb2"
+set -g status-left "#[fg=#83a598][#S] "
+set -g status-right "#[fg=#b8bb26]#{host} #[fg=#fabd2f]%Y-%m-%d %H:%M:%S"
+set -g status-right-length 50
+set -g status-left-length 30
+
+# Current window highlighting (Gruvbox colors from Wezterm)
+setw -g window-status-current-style fg="#ebdbb2",bg="#504945",bold
+setw -g window-status-current-format ' #I:#W '
+setw -g window-status-style fg="#a89984",bg="#3c3836"
+setw -g window-status-format ' #I:#W '
+
+# Pane borders (Gruvbox colors)
+set -g pane-border-style fg="#3c3836"
+set -g pane-active-border-style fg="#504945"
+
+# -- NAVIGATION ---------------------------------------------------------------
+
+# Pane navigation (matches Wezterm's leader + h/j/k/l)
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
+
+# Alt-arrow keys without prefix (matches Wezterm's Alt + h/j/k/l)
+bind -n M-h select-pane -L
+bind -n M-j select-pane -D
+bind -n M-k select-pane -U
+bind -n M-l select-pane -R
+
+# Pane splitting (matches Wezterm's leader + s/v)
+bind s split-window -v -c "#{pane_current_path}"
+bind v split-window -h -c "#{pane_current_path}"
+
+# Pane closing (matches Wezterm's leader + q/x)
+bind q confirm-before -p "Close pane? (y/n)" kill-pane
+bind x kill-pane
+
+# Pane resizing (matches Wezterm's leader + arrows)
+bind -r Left resize-pane -L 5
+bind -r Right resize-pane -R 5
+bind -r Up resize-pane -U 3
+bind -r Down resize-pane -D 3
+
+# Alternative pane resizing (matches Wezterm's leader + H/J/K/L)
+bind -r H resize-pane -L 5
+bind -r L resize-pane -R 5
+bind -r K resize-pane -U 3
+bind -r J resize-pane -D 3
+
+# Pane rotation (matches Wezterm's leader + r/R)
+bind r rotate-window
+bind R rotate-window -D
+
+# Zoom pane (matches Wezterm's leader + z)
+bind z resize-pane -Z
+
+# Tab management (matches Wezterm's leader + t/[ ])
+bind t new-window -c "#{pane_current_path}"
+bind w choose-window
+bind [ previous-window
+bind ] next-window
+
+# Rename window (matches Wezterm's leader + e)
+bind e command-prompt -p "Rename window:" "rename-window '%%'"
+
+# Enter copy mode (matches Wezterm's leader + Space)
+bind Space copy-mode
+
+# Vi mode keys
+setw -g mode-keys vi
+bind -T copy-mode-vi v send -X begin-selection
+bind -T copy-mode-vi y send -X copy-selection
+bind -T copy-mode-vi r send -X rectangle-toggle
+
+# Clipboard support (platform-specific, from your config)
+{{ if eq .chezmoi.os "darwin" }}
+bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "pbcopy"
+{{ else if eq .chezmoi.os "linux" }}
+bind -T copy-mode-vi y send-keys -X copy-p Ascertainty -X copy-pipe-and-cancel "xclip -in -selection clipboard"
+{{ end }}
+
+# Activity monitoring
+setw -g monitor-activity on
+set -g visual-activity on
+
+# Reload tmux config (matches Wezterm's leader + R)
+bind R source-file ~/.tmux.conf \; display-message "Config reloaded!"

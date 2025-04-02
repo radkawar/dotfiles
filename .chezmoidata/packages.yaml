@@ -12,6 +12,8 @@ packages:
       - fish
       - xclip
       - node
+      - alacritty
+      - tmux
     casks:
       - font-jetbrains-mono-nerd-font
 
@@ -20,6 +22,7 @@ packages:
       - git
     casks:
       - wezterm
+      - alacritty
 
   linux:
     brews:

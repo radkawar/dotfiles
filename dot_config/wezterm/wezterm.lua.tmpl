@@ -3,6 +3,10 @@ local act = wezterm.action
 local config = {}
 
 config.enable_wayland = true
+config.enable_kitty_graphics = true
+config.max_fps = 120
+config.front_end = "WebGpu" -- Better performance and rendering
+config.webgpu_power_preference = "HighPerformance"
 
 -- Font and appearance settings
 config.font = wezterm.font("JetBrainsMono Nerd Font")
@@ -27,11 +31,95 @@ config.default_prog = { "/home/linuxbrew/.linuxbrew/bin/fish", "-l" }
 config.default_prog = { "/usr/bin/fish", "-l" }
 {{ end }}
 
+-- Custom status bar with useful information
+config.status_update_interval = 1000
+config.tab_bar_at_bottom = true
+wezterm.on("update-status", function(window, pane)
+  local date = wezterm.strftime("%Y-%m-%d %H:%M:%S")
+  local battery = ""
+  
+  -- Get battery info if available
+  for _, b in ipairs(wezterm.battery_info()) do
+    battery = string.format("%.0f%%", b.state_of_charge * 100)
+  end
+  
+  window:set_right_status(wezterm.format({
+    { Text = battery .. "  " .. date },
+  }))
+end)
+
+config.colors = {
+  -- Default colors
+  foreground = "#ebdbb2",
+  background = "#282828",
+  
+  -- Normal colors (Gruvbox)
+  ansi = {
+    "#282828", -- black
+    "#cc241d", -- red
+    "#98971a", -- green
+    "#d79921", -- yellow
+    "#458588", -- blue
+    "#b16286", -- purple
+    "#689d6a", -- aqua
+    "#a89984", -- white
+  },
+  
+  -- Bright colors (Gruvbox)
+  brights = {
+    "#928374", -- bright black
+    "#fb4934", -- bright red
+    "#b8bb26", -- bright green
+    "#fabd2f", -- bright yellow
+    "#83a598", -- bright blue
+    "#d3869b", -- bright purple
+    "#8ec07c", -- bright aqua
+    "#ebdbb2", -- bright white
+  },
+  
+  -- Command palette colors (repeating from above to be clear)
+  command_palette_fg = "#ebdbb2",
+  command_palette_bg = "#282828",
+  
+  -- Tab bar colors
+  tab_bar = {
+    background = "#282828",
+    active_tab = {
+      bg_color = "#504945",
+      fg_color = "#ebdbb2",
+    },
+    inactive_tab = {
+      bg_color = "#3c3836", 
+      fg_color = "#a89984",
+    },
+    inactive_tab_hover = {
+      bg_color = "#504945",
+      fg_color = "#ebdbb2",
+    },
+  },
+  
+  -- Status bar colors - make sure these match your theme
+  status_line = {
+    background = "#3c3836",
+    foreground = "#ebdbb2",
+  },
+}
+
 -- Leader key configuration - defines prefix key for command sequences
 config.leader = { key = "a", mods = "CTRL", timeout_milliseconds = 1000 }
 
 -- Keybinding configuration
 config.keys = {
+-- Tab renaming functionality (using 'e' for edit/rename)
+  { key = "e", mods = "LEADER", action = act.PromptInputLine {
+    description = "Enter new tab name",
+    action = wezterm.action_callback(function(window, pane, line)
+      if line then
+        window:active_tab():set_title(line)
+      end
+    end),
+  }},
+
   -- Pane navigation using directional keys with leader prefix
   { key = "h", mods = "LEADER", action = act.ActivatePaneDirection("Left") },
   { key = "j", mods = "LEADER", action = act.ActivatePaneDirection("Down") },
@@ -102,6 +190,13 @@ config.keys = {
   -- Clipboard operations
   { key = "c", mods = "CTRL|SHIFT", action = act.CopyTo("Clipboard") },
   { key = "p", mods = "CTRL", action = act.PasteFrom("Clipboard") },
+
+  -- Search
+  { key = "/", mods = "LEADER", action = act.Search({ CaseSensitiveString = "" }) },
+  -- Enhanced fuzzy finder for tabs
+  { key = "f", mods = "LEADER", action = act.ShowLauncherArgs { flags = "FUZZY|TABS" } },
+
+  { key = "P", mods = "LEADER|SHIFT", action = act.ActivateCommandPalette },
 }
 
 -- Mouse bindings for additional functionality
@@ -113,5 +208,6 @@ config.mouse_bindings = {
     action = act.PaneSelect,
   },
 }
+
 
 return config

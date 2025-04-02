@@ -1,7 +1,6 @@
 function fish_prompt
     # Detect OS
     set os (uname)
-
     # Get IP
     if test "$os" = Darwin
         set ip (ipconfig getifaddr en0 2>/dev/null)
@@ -10,28 +9,21 @@ function fish_prompt
     else
         set ip unknown
     end
-
     if test -z "$ip"
         set ip no-ip
     end
-
     # First char of username
     set initial (whoami | cut -c1)
-
     # Current time
     set time (date "+%T")
-
     # Get shortened path: /U/D/dev → full last folder
     set full_path (pwd)
     set home (echo $HOME)
-
     if string match -q "$home*" $full_path
         set full_path "~"(string replace "$home" "" $full_path)
     end
-
     set parts (string split "/" $full_path)
     set shortened_path ""
-
     for i in (seq (count $parts))
         set part $parts[$i]
         if test $i -lt (count $parts)
@@ -42,7 +34,6 @@ function fish_prompt
             set shortened_path "$shortened_path/$part"
         end
     end
-
     # Git branch
     set git_branch ""
     if type -q git
@@ -52,6 +43,17 @@ function fish_prompt
         end
     end
 
-    # Final prompt
-    echo -n (set_color cyan)"[$time]" (set_color green)" $initial@$ip" (set_color yellow)" $shortened_path" $git_branch (set_color normal)" ❯ "
+    # Get terminal width
+    set term_width (tput cols)
+
+    # Build the prompt based on terminal width
+    if test $term_width -lt 120
+        # Narrow terminal: omit date and hostname
+        set prompt_first_part (set_color yellow)" $shortened_path" $git_branch
+    else
+        # Wide terminal: include date and hostname
+        set prompt_first_part (set_color cyan)"[$time]" (set_color green)" $initial@$ip" (set_color yellow)" $shortened_path" $git_branch
+    end
+
+    echo -n $prompt_first_part (set_color normal)"❯ "
 end
