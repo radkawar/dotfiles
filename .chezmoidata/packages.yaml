@@ -5,7 +5,6 @@ packages:
       - ripgrep
       - fd
       - fzf
-      - curl
       - gcc
       - lazygit
       - wezterm
@@ -23,5 +22,7 @@ packages:
       - wezterm
 
   linux:
+    brews:
+      - curl
     taps:
       - wezterm/wezterm-linuxbrew
