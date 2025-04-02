@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=1.0
+Name=Alacritty (tmux)
+Comment=GPU-accelerated terminal emulator with tmux
+Exec={{ if eq .chezmoi.os "linux" }}/home/linuxbrew/.linuxbrew/bin/alacritty{{ else }}/opt/homebrew/bin/alacritty{{ end }} -e tmux
+Icon=Alacritty
+Terminal=false
+Type=Application
+Categories=System;TerminalEmulator;
+StartupWMClass=Alacritty
