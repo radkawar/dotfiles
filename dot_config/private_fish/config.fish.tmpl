@@ -1,0 +1,18 @@
+set -g fish_greeting ""
+
+# Add Homebrew to PATH
+{{ if eq .chezmoi.os "darwin" }}
+    # macOS (Apple Silicon default)
+    if test -d /opt/homebrew
+        eval (/opt/homebrew/bin/brew shellenv)
+    end
+{{ else if eq .chezmoi.os "linux" }}
+    # Linuxbrew
+    if test -d /home/linuxbrew/.linuxbrew
+        eval (/home/linuxbrew/.linuxbrew/bin/brew shellenv)
+    end
+{{ end }}
+
+# Your aliases and settings
+alias ll="ls -alF"
+alias vim="nvim"

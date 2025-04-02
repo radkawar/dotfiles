@@ -1,0 +1,27 @@
+packages:
+  common:
+    brews:
+      - neovim
+      - ripgrep
+      - fd
+      - fzf
+      - curl
+      - gcc
+      - lazygit
+      - wezterm
+      - go
+      - fish
+      - xclip
+      - node
+    casks:
+      - font-jetbrains-mono-nerd-font
+
+  darwin:
+    brews:
+      - git
+    casks:
+      - wezterm
+
+  linux:
+    taps:
+      - wezterm/wezterm-linuxbrew

@@ -1,0 +1,117 @@
+local wezterm = require("wezterm")
+local act = wezterm.action
+local config = {}
+
+config.enable_wayland = true
+
+-- Font and appearance settings
+config.font = wezterm.font("JetBrainsMono Nerd Font")
+config.font_size = 13.0
+config.line_height = 1.2
+config.color_scheme = "Catppuccin Mocha"
+config.use_fancy_tab_bar = false
+config.hide_tab_bar_if_only_one_tab = true
+config.window_padding = {
+  left = 4,
+  right = 4,
+  top = 2,
+  bottom = 2,
+}
+
+-- Platform-specific shell configuration
+{{ if eq .chezmoi.os "darwin" }}
+config.default_prog = { "/opt/homebrew/bin/fish", "-l" }
+{{ else if eq .chezmoi.os "linux" }}
+config.default_prog = { "/home/linuxbrew/.linuxbrew/bin/fish", "-l" }
+{{ else }}
+config.default_prog = { "/usr/bin/fish", "-l" }
+{{ end }}
+
+-- Leader key configuration - defines prefix key for command sequences
+config.leader = { key = "a", mods = "CTRL", timeout_milliseconds = 1000 }
+
+-- Keybinding configuration
+config.keys = {
+  -- Pane navigation using directional keys with leader prefix
+  { key = "h", mods = "LEADER", action = act.ActivatePaneDirection("Left") },
+  { key = "j", mods = "LEADER", action = act.ActivatePaneDirection("Down") },
+  { key = "k", mods = "LEADER", action = act.ActivatePaneDirection("Up") },
+  { key = "l", mods = "LEADER", action = act.ActivatePaneDirection("Right") },
+  
+  -- Alternative pane navigation with Alt modifier for quick access
+  { key = "h", mods = "ALT", action = act.ActivatePaneDirection("Left") },
+  { key = "j", mods = "ALT", action = act.ActivatePaneDirection("Down") },
+  { key = "k", mods = "ALT", action = act.ActivatePaneDirection("Up") },
+  { key = "l", mods = "ALT", action = act.ActivatePaneDirection("Right") },
+
+  -- Pane splitting commands
+  { key = "s", mods = "LEADER", action = act.SplitVertical({ domain = "CurrentPaneDomain" }) },
+  { key = "v", mods = "LEADER", action = act.SplitHorizontal({ domain = "CurrentPaneDomain" }) },
+  
+  -- Pane closing commands
+  { key = "q", mods = "LEADER", action = act.CloseCurrentPane({ confirm = true }) },
+  { key = "x", mods = "LEADER", action = act.CloseCurrentPane({ confirm = false }) },
+  
+  -- Pane resizing using arrow keys with leader prefix
+  { key = "LeftArrow", mods = "LEADER", action = act.AdjustPaneSize({ "Left", 5 }) },
+  { key = "RightArrow", mods = "LEADER", action = act.AdjustPaneSize({ "Right", 5 }) },
+  { key = "UpArrow", mods = "LEADER", action = act.AdjustPaneSize({ "Up", 3 }) },
+  { key = "DownArrow", mods = "LEADER", action = act.AdjustPaneSize({ "Down", 3 }) },
+  
+  -- Alternative pane resizing using letter keys (keeps hands on home row)
+  { key = "H", mods = "LEADER|SHIFT", action = act.AdjustPaneSize({ "Left", 5 }) },
+  { key = "L", mods = "LEADER|SHIFT", action = act.AdjustPaneSize({ "Right", 5 }) },
+  { key = "K", mods = "LEADER|SHIFT", action = act.AdjustPaneSize({ "Up", 3 }) },
+  { key = "J", mods = "LEADER|SHIFT", action = act.AdjustPaneSize({ "Down", 3 }) },
+  
+  -- Pane rotation commands
+  { key = "r", mods = "LEADER", action = act.RotatePanes("Clockwise") },
+  { key = "R", mods = "LEADER|SHIFT", action = act.RotatePanes("CounterClockwise") },
+  
+  -- Toggle zoom state of current pane (expands to fill window)
+  { key = "z", mods = "LEADER", action = act.TogglePaneZoomState },
+  
+  -- Quick pane selection by index number
+  { key = "1", mods = "LEADER", action = act.ActivatePaneByIndex(0) },
+  { key = "2", mods = "LEADER", action = act.ActivatePaneByIndex(1) },
+  { key = "3", mods = "LEADER", action = act.ActivatePaneByIndex(2) },
+  { key = "4", mods = "LEADER", action = act.ActivatePaneByIndex(3) },
+  { key = "5", mods = "LEADER", action = act.ActivatePaneByIndex(4) },
+  
+  -- Swap the current pane with another pane
+  { key = "X", mods = "LEADER|SHIFT", action = act.PaneSelect({ mode = "SwapWithActive" }) },
+  
+  -- Interactive pane selection mode
+  { key = "p", mods = "LEADER", action = act.PaneSelect },
+  
+  -- Move the current pane to a new tab
+  { key = "!", mods = "LEADER|SHIFT", action = act.PaneSelect({ mode = "MoveToNewTab" }) },
+  
+  -- Tab management commands
+  { key = "t", mods = "LEADER", action = act.SpawnTab("CurrentPaneDomain") },
+  { key = "w", mods = "LEADER", action = act.ShowTabNavigator },
+  { key = "[", mods = "LEADER", action = act.ActivateTabRelative(-1) },
+  { key = "]", mods = "LEADER", action = act.ActivateTabRelative(1) },
+  
+  -- Send "CTRL-a" to the terminal when pressing CTRL-a twice
+  { key = "a", mods = "LEADER|CTRL", action = act.SendKey({ key = "a", mods = "CTRL" }) },
+  
+  -- Enter text selection/copy mode
+  { key = "Space", mods = "LEADER", action = act.ActivateCopyMode },
+  
+  -- Clipboard operations
+  { key = "y", mods = "CTRL", action = act.CopyTo("Clipboard") },
+  { key = "p", mods = "CTRL", action = act.PasteFrom("Clipboard") },
+}
+
+-- Mouse bindings for additional functionality
+config.mouse_bindings = {
+  -- Right-click activates pane selection mode
+  {
+    event = { Down = { streak = 1, button = "Right" } },
+    mods = "NONE",
+    action = act.PaneSelect,
+  },
+}
+
+return config
