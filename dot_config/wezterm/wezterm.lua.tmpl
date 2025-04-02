@@ -8,8 +8,7 @@ config.max_fps = 120
 config.front_end = "WebGpu" -- Better performance and rendering
 config.webgpu_power_preference = "HighPerformance"
 
-config.send_composed_key_when_left_alt_is_pressed = true
-config.send_composed_key_when_right_alt_is_pressed = true
+
 
 -- Font and appearance settings
 config.font = wezterm.font("JetBrainsMono Nerd Font")
@@ -65,6 +64,10 @@ config.keys = {
       end
     end),
   }},
+
+{{ if eq .chezmoi.os "darwin" }}
+  { key = "3", mods = "ALT", action = wezterm.action.SendString("#") },
+{{ end }}
 
   -- Pane navigation using directional keys with leader prefix
   { key = "h", mods = "LEADER", action = act.ActivatePaneDirection("Left") },
