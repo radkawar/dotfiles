@@ -3,6 +3,9 @@ local mux = wezterm.mux
 local act = wezterm.action
 local config = {}
 
+
+local session_manager = require("wezterm-session-manager/session-manager")
+
 -- Performance Settings
 config.enable_wayland = true
 config.enable_kitty_graphics = true
@@ -152,6 +155,9 @@ config.default_prog = { "/usr/bin/fish", "-l" }
 config.leader = { key = "a", mods = "CTRL", timeout_milliseconds = 1000 }
 
 
+wezterm.on("save_session", function(window) session_manager.save_state(window) end)
+wezterm.on("load_session", function(window) session_manager.load_state(window) end)
+wezterm.on("restore_session", function(window) session_manager.restore_state(window) end)
 
 local actions = {
   show_workspaces = act.ShowLauncherArgs { flags = "FUZZY|WORKSPACES", title = "Switch Workspace" },
@@ -205,16 +211,36 @@ config.key_tables = {
     -- Exit workspace mode with Escape
     { key = "Escape", mods = "NONE", action = act.PopKeyTable },
   },
+
+
+  session_management = {
+    { key = 's', action = act.EmitEvent 'save_session' },
+    { key = 'l', action = act.EmitEvent 'load_session' },
+    { key = 'r', action = act.EmitEvent 'restore_session' },
+    -- Add an escape key to exit the key table
+    { key = 'Escape', action = act.PopKeyTable },
+  },
 }
 
 -- Keybindings
 config.keys = {
+  -- Session Mode
+  {
+    key = 'm', mods = 'LEADER', action = act.ActivateKeyTable { 
+      name = 'session_management', 
+      one_shot = false,
+      timeout_milliseconds = 1000,
+    },
+  },
+
   -- Workspace Mode
-  { key = "w", mods = "LEADER", action = act.ActivateKeyTable {
-    name = "workspace_mode",
-    one_shot = false,
-    timeout_milliseconds = 1000,
-  }},
+  {
+    key = "w", mods = "LEADER", action = act.ActivateKeyTable {
+      name = "workspace_mode",
+      one_shot = false,
+      timeout_milliseconds = 1000,
+    }
+  },
 
 
   -- Tab Management
