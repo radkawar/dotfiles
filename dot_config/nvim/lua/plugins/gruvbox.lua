@@ -16,8 +16,8 @@ return {
     config = function()
       require("tokyonight").setup({
         style = "storm", -- Options: "storm", "moon", "night", "day"
-        transparent = false, -- Set to true for transparent background
-        dim_inactive = false, -- Dim inactive windows
+        transparent = true, -- Set to true for transparent background
+        dim_inactive = true, -- Dim inactive windows
         styles = {
           comments = { italic = true },
           keywords = { bold = true },
