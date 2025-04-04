@@ -325,6 +325,9 @@ config.keys = {
   -- Platform-Specific Keybindings
   {{ if eq .chezmoi.os "darwin" }}
   { key = "3", mods = "ALT", action = wezterm.action.SendString("#") },
+  { key = "m", mods = "ALT", action = wezterm.action.SendString("µ") },
+  { key = "o", mods = "ALT", action = wezterm.action.SendString("ø") },
+  { key = "l", mods = "ALT", action = wezterm.action.SendString("λ") },
   {{ end }}
 }
 
