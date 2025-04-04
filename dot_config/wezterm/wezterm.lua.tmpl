@@ -49,7 +49,7 @@ config.window_padding = {
 config.use_fancy_tab_bar = false
 config.hide_tab_bar_if_only_one_tab = false
 config.tab_bar_at_bottom = false
-config.tab_max_width = 20  -- Fixed width for tabs
+config.tab_max_width = 15  -- Fixed width for tabs
 
 
 config.command_palette_font_size = 13.0
@@ -80,8 +80,8 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config, hover, max_wid
   local base_title = title
   title = index_str .. title
   
-  -- Set fixed width (20 characters total, excluding outer padding)
-  local fixed_width = 20
+  -- Set fixed width (15 characters total, excluding outer padding)
+  local fixed_width = 15
   local index_length = #index_str
   local available_width = fixed_width - index_length - 2  -- Account for outer padding
   
@@ -110,9 +110,8 @@ wezterm.on('format-tab-title', function(tab, tabs, panes, config, hover, max_wid
 end)
 
 -- Status Bar Settings
-config.status_update_interval = 1000
 wezterm.on("update-status", function(window, pane)
-  local date = wezterm.strftime("%Y-%m-%d %H:%M:%S")
+  local date = wezterm.strftime("%a %d-%b %H:%M%p")
   local battery = ""
   for _, b in ipairs(wezterm.battery_info()) do
     battery = string.format("%.0f%%", b.state_of_charge * 100)
