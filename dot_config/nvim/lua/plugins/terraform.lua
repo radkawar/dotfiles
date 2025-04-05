@@ -12,6 +12,17 @@ return {
       servers = {
         terraformls = {
           filetypes = { "terraform", "terraform-vars", "hcl" },
+          on_attach = function(client, bufnr)
+            require("treesitter-terraform-doc").setup({
+              command_name = "OpenDoc",
+              url_opener_command = "!open",
+              jump_argument = true,
+            })
+            local wk = require("which-key")
+            wk.add({
+              { "<leader>td", "<cmd>OpenDoc<CR>", desc = "Terraform Documentation", buffer = bufnr },
+            })
+          end,
         },
       },
     },
@@ -23,5 +34,9 @@ return {
         vim.list_extend(opts.ensure_installed, { "terraform", "hcl" })
       end
     end,
+  },
+  {
+    "Afourcat/treesitter-terraform-doc.nvim",
+    dependencies = { "nvim-treesitter/nvim-treesitter" },
   },
 }

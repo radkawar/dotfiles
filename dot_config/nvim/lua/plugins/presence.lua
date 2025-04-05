@@ -3,7 +3,9 @@ return {
   event = "VeryLazy",
   config = function()
     require("presence").setup({
-      neovim_image_text = "hello there",
+      neovim_image_text = "neovim",
+      show_time = false,
+      enable_line_number = true,
     })
   end,
 }
