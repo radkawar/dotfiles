@@ -49,7 +49,7 @@ function fish_prompt
     # Build the prompt based on terminal width
     if test $term_width -lt 120
         # Narrow terminal: omit date and hostname
-        set prompt_first_part (set_color yellow)" $shortened_path" $git_branch
+        set prompt_first_part (set_color cyan)"[$time]" (set_color yellow) "$shortened_path" $git_branch
     else
         # Wide terminal: include date and hostname
         set prompt_first_part (set_color cyan)"[$time]" (set_color green)" $initial@$ip" (set_color yellow)" $shortened_path" $git_branch

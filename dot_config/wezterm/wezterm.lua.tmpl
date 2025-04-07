@@ -40,6 +40,11 @@ config.colors = {
   cursor_border = "#bb9af7",
 }
 
+
+config.send_composed_key_when_left_alt_is_pressed = true
+config.send_composed_key_when_right_alt_is_pressed = true
+
+
 -- Window and Padding Settings
 config.window_padding = {
   left = 4,
@@ -141,7 +146,6 @@ wezterm.on("update-status", function(window, pane)
     { Text = " " .. date .. " " },
   }))
 end)
-
 -- Shell Configuration (Platform-Specific)
 {{ if eq .chezmoi.os "darwin" }}
 config.default_prog = { "/opt/homebrew/bin/fish", "-l" }
@@ -152,7 +156,7 @@ config.default_prog = { "/usr/bin/fish", "-l" }
 {{ end }}
 
 -- Leader Key Configuration
-config.leader = { key = "a", mods = "CTRL", timeout_milliseconds = 1000 }
+config.leader = { key = "k", mods = "CTRL", timeout_milliseconds = 1000 }
 
 
 wezterm.on("save_session", function(window) session_manager.save_state(window) end)
@@ -212,6 +216,25 @@ config.key_tables = {
     { key = "Escape", mods = "NONE", action = act.PopKeyTable },
   },
 
+  tab_management = {
+    { key = "t", mods = "NONE", action = act.SpawnTab("CurrentPaneDomain") },
+    { key = "r", mods = "NONE", action = act.ShowTabNavigator },
+    { key = "[", mods = "NONE", action = act.ActivateTabRelative(-1) },
+    { key = "]", mods = "NONE", action = act.ActivateTabRelative(1) },
+    { key = "f", mods = "NONE", action = act.ShowLauncherArgs { flags = "FUZZY|TABS" } },
+    { key = "0", mods = "NONE", action = act.ActivateTab(-1) }, -- Last tab
+    { key = "1", mods = "NONE", action = act.ActivateTab(0) },
+    { key = "2", mods = "NONE", action = act.ActivateTab(1) },
+    { key = "3", mods = "NONE", action = act.ActivateTab(2) },
+    { key = "4", mods = "NONE", action = act.ActivateTab(3) },
+    { key = "5", mods = "NONE", action = act.ActivateTab(4) },
+    { key = "6", mods = "NONE", action = act.ActivateTab(5) },
+    { key = "7", mods = "NONE", action = act.ActivateTab(6) },
+    { key = "8", mods = "NONE", action = act.ActivateTab(7) },
+    { key = "9", mods = "NONE", action = act.ActivateTab(8) },
+    -- Exit tab management mode with Escape
+    { key = "Escape", mods = "NONE", action = act.PopKeyTable },
+  },
 
   session_management = {
     { key = 's', action = act.EmitEvent 'save_session' },
@@ -243,23 +266,14 @@ config.keys = {
   },
 
 
-  -- Tab Management
-  { key = "t", mods = "LEADER", action = act.SpawnTab("CurrentPaneDomain") },
-  { key = "T", mods = "LEADER", action = act.ShowTabNavigator },
-  { key = "[", mods = "LEADER", action = act.ActivateTabRelative(-1) },
-  { key = "]", mods = "LEADER", action = act.ActivateTabRelative(1) },
-
-  -- Tab switching by number
-  { key = "1", mods = "LEADER", action = act.ActivateTab(0) },
-  { key = "2", mods = "LEADER", action = act.ActivateTab(1) },
-  { key = "3", mods = "LEADER", action = act.ActivateTab(2) },
-  { key = "4", mods = "LEADER", action = act.ActivateTab(3) },
-  { key = "5", mods = "LEADER", action = act.ActivateTab(4) },
-  { key = "6", mods = "LEADER", action = act.ActivateTab(5) },
-  { key = "7", mods = "LEADER", action = act.ActivateTab(6) },
-  { key = "8", mods = "LEADER", action = act.ActivateTab(7) },
-  { key = "9", mods = "LEADER", action = act.ActivateTab(8) },
-  { key = "0", mods = "LEADER", action = act.ActivateTab(-1) }, -- Last tab
+  -- Tab Management Mode
+  {
+    key = "t", mods = "LEADER", action = act.ActivateKeyTable {
+      name = "tab_management",
+      one_shot = false,
+      timeout_milliseconds = 1000,
+    }
+  },
 
   -- Tab Renaming
   { key = "e", mods = "LEADER", action = act.PromptInputLine {
@@ -322,13 +336,6 @@ config.keys = {
   -- Send Leader Key
   { key = "a", mods = "LEADER|CTRL", action = act.SendKey({ key = "a", mods = "CTRL" }) },
 
-  -- Platform-Specific Keybindings
-  {{ if eq .chezmoi.os "darwin" }}
-  { key = "3", mods = "ALT", action = wezterm.action.SendString("#") },
-  { key = "m", mods = "ALT", action = wezterm.action.SendString("µ") },
-  { key = "o", mods = "ALT", action = wezterm.action.SendString("ø") },
-  { key = "l", mods = "ALT", action = wezterm.action.SendString("λ") },
-  {{ end }}
 }
 
 -- Mouse Bindings
