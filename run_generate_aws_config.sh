@@ -2,6 +2,11 @@
 
 TAG="TYPE:AWS_ACCESS_KEY"
 OUTPUT_FILE="$HOME/.aws/config"
+CREDENTIALS_FILE="$HOME/.aws/credentials"
+
+if [ -z "${REFRESH_AWS}" ]; then
+  exit 0
+fi
 
 # Check for required tools
 command -v op >/dev/null 2>&1 || { echo "Error: 1Password CLI (op) is required."; exit 1; }
@@ -13,7 +18,7 @@ op whoami >/dev/null 2>&1 || eval $(op signin)
 # Create or clear output file
 mkdir -p "$(dirname "$OUTPUT_FILE")"
 > "$OUTPUT_FILE"
-
+> "$CREDENTIALS_FILE"
 # Get items with the specified tag
 items=$(op item list --tags "$TAG" --format json)
 
