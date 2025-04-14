@@ -1,0 +1,11 @@
+{{- if not .aws_profiles }}
+# No AWS profiles found
+{{- else }}
+{{- range .aws_profiles }}
+[profile {{ .name }}]
+credential_process = sh -c "op item get '{{ .item }}' --vault '{{ .vault }}' --format json --reveal --fields label='AccessKeyId',label='SecretAccessKey' | jq 'map({key: .label, value: .value}) | from_entries + {Version: 1}'"
+{{- if .region }}
+region = {{ .region }}
+{{- end }}
+{{ end }}
+{{ end }}

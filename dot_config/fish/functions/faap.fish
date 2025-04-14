@@ -1,9 +1,14 @@
-function fzf_aws_profile --description "Insert AWS profile using fzf"
+function faap --description "Insert AWS profile using fzf"
     set -l cache_file ~/.cache/aws_profiles_cache
     set -l refresh_cache false
+    set -l should_insert_profile false
 
     if contains -- --refresh $argv
         set refresh_cache true
+    end
+
+    if contains -- --insert $argv
+        set should_insert_profile true
     end
 
     if test "$refresh_cache" = true
@@ -45,10 +50,19 @@ function fzf_aws_profile --description "Insert AWS profile using fzf"
         if test -n "$selected_line"
             set -l selected_profile (string split -f1 " " -- "$selected_line")
             if test -n "$selected_profile"
-                commandline -i " --profile $selected_profile"
+                if test "$should_insert_profile" = true
+                    commandline -i " --profile $selected_profile"
+                else
+                    set -l selected_data (grep "^$selected_profile\t" $cache_file)
+                    printf "Profile\tUserID\tAccount\tRegion\tARN\n" >/tmp/aws_profile_output.tmp
+                    echo $selected_data >>/tmp/aws_profile_output.tmp
+                    column -t -s \t </tmp/aws_profile_output.tmp
+                    rm -f /tmp/aws_profile_output.tmp
+                end
             end
         end
     else
         echo "No AWS profiles found or cache not built" >&2
     end
 end
+
