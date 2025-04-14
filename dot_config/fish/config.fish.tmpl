@@ -13,6 +13,8 @@ if test -d /home/linuxbrew/.linuxbrew
 end
 {{ end }}
 
+set -gx PATH (go env GOPATH)/bin $PATH
+
 # Only run in interactive sessions
 if status is-interactive
     # Check if we're already in Tmux (to avoid nesting)
@@ -31,4 +33,12 @@ if status is-interactive
 end
 # Your aliases and settings
 alias ll="ls -alF"
+alias ls="ls --color=auto"
 alias vim="nvim"
+alias p="pwd"
+alias c="clear"
+alias cdr="cd (git_root)"
+alias g="git"
+alias ga="git add"
+alias gc="git commit"
+alias gcm="git commit -m"
