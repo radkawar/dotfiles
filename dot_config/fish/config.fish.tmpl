@@ -14,6 +14,7 @@ end
 {{ end }}
 
 set -gx PATH (go env GOPATH)/bin $PATH
+fish_add_path ~/.scripts
 
 # Only run in interactive sessions
 if status is-interactive

@@ -4,10 +4,6 @@ TAG="TYPE:AWS_ACCESS_KEY"
 OUTPUT_FILE="$HOME/.aws/config"
 CREDENTIALS_FILE="$HOME/.aws/credentials"
 
-if [ -z "${REFRESH_AWS}" ]; then
-  exit 0
-fi
-
 # Check for required tools
 command -v op >/dev/null 2>&1 || { echo "Error: 1Password CLI (op) is required."; exit 1; }
 command -v jq >/dev/null 2>&1 || { echo "Error: jq is required."; exit 1; }
