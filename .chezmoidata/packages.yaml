@@ -16,6 +16,7 @@ packages:
       - tmux
       - luarocks
       - jq
+      - awscli
     casks:
       - font-jetbrains-mono-nerd-font
 
