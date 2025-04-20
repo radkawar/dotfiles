@@ -156,7 +156,7 @@ config.default_prog = { "/usr/bin/fish", "-l" }
 {{ end }}
 
 -- Leader Key Configuration
-config.leader = { key = "k", mods = "CTRL", timeout_milliseconds = 1000 }
+config.leader = { key = "a", mods = "CTRL", timeout_milliseconds = 1000 }
 
 
 wezterm.on("save_session", function(window) session_manager.save_state(window) end)

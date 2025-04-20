@@ -15,7 +15,7 @@ setw -g pane-base-index 1
 set -g renumber-windows on
 set -g history-limit 10000
 set -g mouse on
-set -sg escape-time 0
+set -sg escape-time 100
 
 # -- DISPLAY ------------------------------------------------------------------
 
@@ -26,7 +26,7 @@ set -g status-right "#[fg=#b8bb26]#{host} #[fg=#fabd2f]%Y-%m-%d %H:%M"
 set -g status-right-length 50
 set -g status-left-length 30
 
-setw -g window-status-current-style fg="#ebdbb2",bg="#504945",bold
+setw -g window-status-current-style fg="#ebdbb2",bg="#504945"
 setw -g window-status-current-format ' #I:#W '
 setw -g window-status-style fg="#a89984",bg="#3c3836"
 setw -g window-status-format ' #I:#W '

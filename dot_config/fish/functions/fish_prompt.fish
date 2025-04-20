@@ -1,4 +1,5 @@
 function fish_prompt
+    printf "\033]0;%s\007" (pwd)
     # Detect OS
     set os (uname)
     # Get IP
