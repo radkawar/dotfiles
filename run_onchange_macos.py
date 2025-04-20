@@ -388,6 +388,8 @@ class MacOSSetting:
 
 
 if __name__ == "__main__":
+    print("Skipping macOS settings for now..")
+    sys.exit(0)
     if sys.platform != "darwin":
         logging.error("This script is only supported on macOS.")
         sys.exit(1)

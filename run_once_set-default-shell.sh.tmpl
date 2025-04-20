@@ -16,7 +16,12 @@ if ! grep -q "$FISH_PATH" /etc/shells; then
   echo "$FISH_PATH" | sudo tee -a /etc/shells
 fi
 
+{{- if eq .chezmoi.os "darwin" }}
+CURRENT_SHELL=$(dscl . -read /Users/$USER UserShell | awk '{print $2}')
+{{- else }}
 CURRENT_SHELL=$(getent passwd $USER | cut -d: -f7)
+{{- end }}
+
 if [[ "$CURRENT_SHELL" != "$FISH_PATH" ]]; then
   echo "Changing shell to $FISH_PATH"
   chsh -s "$FISH_PATH"
