@@ -82,7 +82,7 @@ bind r rotate-window                          # 'r' to rotate
 
 # Developer workflow
 bind e command-prompt -p "Rename window:" "rename-window '%%'"  # 'e' for edit name
-bind R source-file ~/.tmux/tmux.conf \; display "Config reloaded"  # 'R' to reload
+bind R source-file ~/.config/tmux/tmux.conf \; display "Config reloaded"  # 'R' to reload
 bind g run-shell "tmux split-window -h -c '#{pane_current_path}' 'go run .'"  # 'g' for go run
 bind N run-shell "tmux split-window -h -c '#{pane_current_path}' 'npm start'"  # 'N' for npm start
 bind G run-shell "tmux split-window -h -c '#{pane_current_path}' 'lazygit'"  # 'G' for lazygit

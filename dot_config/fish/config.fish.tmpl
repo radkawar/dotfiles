@@ -16,22 +16,6 @@ end
 set -gx PATH (go env GOPATH)/bin $PATH
 fish_add_path ~/.scripts
 
-# Only run in interactive sessions
-if status is-interactive
-    # Check if we're already in Tmux (to avoid nesting)
-    if not set -q TMUX
-        # Detect the terminal emulator
-        set -l parent_process (ps -p (ps -p $fish_pid -o ppid= | string trim) -o comm= | string trim)
-
-        # If the parent process is 'alacritty', start Tmux
-        if string match -q alacritty $parent_process
-            exec tmux
-            # If the parent process is 'wezterm' or 'wezterm-gui', do nothing
-        else if string match -q "wezterm*" $parent_process
-            # No Tmux for Wezterm
-        end
-    end
-end
 # Your aliases and settings
 alias ll="ls -alF"
 alias ls="ls --color=auto"

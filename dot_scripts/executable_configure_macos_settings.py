@@ -113,6 +113,29 @@ class Setting:
     description: str = ""
     requires_sudo: bool = False
 
+    def read(self):
+        """Read and log the current value of the setting without modifying it."""
+        if self.requires_sudo and not is_running_as_sudo():
+            logging.warning(
+                f"Setting {self.key} in {self.domain} requires sudo. Skipping read.")
+            return
+
+        # Construct the defaults read command
+        command = f"defaults read {shlex.quote(self.domain)} {shlex.quote(self.key)}"
+        
+        # Run the command to read the value
+        success, stdout, stderr = run_command(command, capture_output=True, check=False)
+        
+        if success and stdout:
+            # Log the current value with the description
+            logging.info(f"{self.description}: Current value of {self.key} in {self.domain} = {stdout.strip()}")
+        elif stderr and ("does not exist" in stderr or "The domain/default pair" in stderr):
+            # Handle case where the domain/key doesn't exist
+            logging.info(f"{self.description}: No value set for {self.key} in {self.domain} (key does not exist).")
+        else:
+            # Log any other errors
+            logging.error(f"Failed to read {self.key} in {self.domain}: {stderr.strip() if stderr else 'Unknown error'}")
+
     def apply(self):
         if self.requires_sudo and not is_running_as_sudo():
             logging.warning(
@@ -175,109 +198,67 @@ def _apply_dict(domain: str, key: str, dict_items: List[Tuple[str, str, str]], d
 
 
 global_settings = [
-    Setting("NSGlobalDomain", "AppleShowAllExtensions", "regular",
-            "-bool", "true", description="Show all filename extensions"),
-    Setting("NSGlobalDomain", "AppleActionOnDoubleClick", "regular",
-            "-string", "Maximize", description="Double-click title bar to zoom"),
-    Setting("NSGlobalDomain", "AppleWindowTabbingMode", "regular",
-            "-string", "fullscreen", description="Prefer tabs in full screen"),
-    Setting("NSGlobalDomain", "NSCloseAlwaysConfirmsChanges", "regular", "-bool",
-            "true", description="Ask to keep changes when closing documents"),
-    Setting("NSGlobalDomain", "com.apple.trackpad.scaling", "regular",
-            "-float", "0.5", description="Set slower trackpad cursor speed"),
-    Setting("NSGlobalDomain", "com.apple.mouse.scaling", "regular",
-            "-float", "0.5", description="Set slower mouse cursor speed"),
-    Setting("NSGlobalDomain", "KeyRepeat", "regular", "-int",
-            "2", description="Set key repeat rate to fast"),
-    Setting("NSGlobalDomain", "InitialKeyRepeat", "regular", "-int",
-            "15", description="Set delay until repeat to short"),
-    Setting("NSGlobalDomain", "AppleKeyboardUIMode", "regular", "-int",
-            "0", description="Disable keyboard navigation for controls"),
-    Setting("NSGlobalDomain", "_HIHideMenuBar", "regular", "-bool",
-            "true", description="Disable menu bar auto-hiding"),
+    # Setting("NSGlobalDomain", "AppleShowAllExtensions", "regular", "-bool", "true", description="Show all filename extensions"),
+    # Setting("NSGlobalDomain", "AppleActionOnDoubleClick", "regular", "-string", "Maximize", description="Double-click title bar to zoom"),
+    # Setting("NSGlobalDomain", "AppleWindowTabbingMode", "regular", "-string", "fullscreen", description="Prefer tabs in full screen"),
+    # Setting("NSGlobalDomain", "NSCloseAlwaysConfirmsChanges", "regular", "-bool", "true", description="Ask to keep changes when closing documents"),
+    # Setting("NSGlobalDomain", "com.apple.trackpad.scaling", "regular", "-float", "0.5", description="Set slower trackpad cursor speed"),
+    # Setting("NSGlobalDomain", "com.apple.mouse.scaling", "regular", "-float", "0.5", description="Set slower mouse cursor speed"),
+    Setting("NSGlobalDomain", "KeyRepeat", "regular", "-int", "2", description="Set key repeat rate to fast"),
+    Setting("NSGlobalDomain", "InitialKeyRepeat", "regular", "-int", "15", description="Set delay until repeat to short"),
+    # Setting("NSGlobalDomain", "AppleKeyboardUIMode", "regular", "-int", "0", description="Disable keyboard navigation for controls"),
+    # Setting("NSGlobalDomain", "_HIHideMenuBar", "regular", "-bool", "true", description="Disable menu bar auto-hiding"),
 ]
 
 finder_settings = [
-    Setting("com.apple.finder", "AppleShowAllFiles", "regular",
-            "-bool", "true", description="Show hidden files"),
-    Setting("com.apple.finder", "FXPreferredViewStyle", "regular",
-            "-string", "Nlsv", description="Set Finder to list view"),
-    Setting("com.apple.finder", "ShowPathbar", "regular", "-bool",
-            "true", description="Enable Finder path bar"),
+    Setting("com.apple.finder", "AppleShowAllFiles", "regular", "-bool", "true", description="Show hidden files"),
+    Setting("com.apple.finder", "FXPreferredViewStyle", "regular", "-string", "Nlsv", description="Set Finder to list view"),
+    Setting("com.apple.finder", "ShowPathbar", "regular", "-bool", "true", description="Enable Finder path bar"),
 ]
 
 dock_settings = [
-    Setting("com.apple.dock", "tilesize", "regular", "-int",
-            "36", description="Set Dock size to smaller"),
-    Setting("com.apple.dock", "magnification", "regular", "-bool",
-            "true", description="Enable Dock magnification"),
-    Setting("com.apple.dock", "largesize", "regular", "-int",
-            "64", description="Set magnification size"),
-    Setting("com.apple.dock", "orientation", "regular", "-string",
-            "bottom", description="Set Dock to bottom"),
-    Setting("com.apple.dock", "mineffect", "regular", "-string",
-            "genie", description="Set minimize effect to genie"),
-    Setting("com.apple.dock", "minimize-to-application", "regular",
-            "-bool", "false", description="Disable minimize to app icon"),
-    Setting("com.apple.dock", "autohide", "regular", "-bool",
-            "true", description="Enable Dock auto-hide"),
-    Setting("com.apple.dock", "launchanim", "regular", "-bool",
-            "true", description="Animate opening applications"),
-    Setting("com.apple.dock", "show-process-indicators", "regular",
-            "-bool", "true", description="Show indicators for open apps"),
-    Setting("com.apple.dock", "show-recents", "regular", "-bool",
-            "false", description="Disable recent apps in Dock"),
+    Setting("com.apple.dock", "tilesize", "regular", "-int", "36", description="Set Dock size to smaller"),
+    Setting("com.apple.dock", "magnification", "regular", "-bool", "true", description="Enable Dock magnification"),
+    Setting("com.apple.dock", "largesize", "regular", "-int", "64", description="Set magnification size"),
+    Setting("com.apple.dock", "orientation", "regular", "-string", "bottom", description="Set Dock to bottom"),
+    Setting("com.apple.dock", "mineffect", "regular", "-string", "genie", description="Set minimize effect to genie"),
+    Setting("com.apple.dock", "minimize-to-application", "regular", "-bool", "false", description="Disable minimize to app icon"),
+    Setting("com.apple.dock", "autohide", "regular", "-bool", "true", description="Enable Dock auto-hide"),
+    Setting("com.apple.dock", "launchanim", "regular", "-bool", "true", description="Animate opening applications"),
+    Setting("com.apple.dock", "show-process-indicators", "regular", "-bool", "true", description="Show indicators for open apps"),
+    Setting("com.apple.dock", "show-recents", "regular", "-bool", "false", description="Disable recent apps in Dock"),
 ]
 
 stage_manager_settings = [
-    Setting("com.apple.WindowManager", "GloballyEnabled", "regular",
-            "-bool", "true", description="Enable Stage Manager"),
-    Setting("com.apple.WindowManager", "EnableStandardClickToShowDesktop",
-            "regular", "-bool", "true", description="Click wallpaper to reveal desktop"),
-    Setting("com.apple.WindowManager", "AutoHide", "regular", "-bool",
-            "false", description="Disable Stage Manager auto-hide"),
-    Setting("com.apple.WindowManager", "AppRecents", "regular", "-bool",
-            "true", description="Enable recent apps in Stage Manager"),
-    Setting("com.apple.WindowManager", "AppWindowGrouping", "regular",
-            "-int", "1", description="Show one window per app"),
-    Setting("com.apple.WindowManager", "ShowWidgetsOnDesktop", "regular",
-            "-bool", "true", description="Enable widgets on Desktop"),
-    Setting("com.apple.WindowManager", "ShowWidgetsInStageManager", "regular",
-            "-bool", "true", description="Enable widgets in Stage Manager"),
-    Setting("com.apple.WindowManager", "WidgetStyle", "regular",
-            "-int", "0", description="Set widget style to automatic"),
+    # Setting("com.apple.WindowManager", "GloballyEnabled", "regular", "-bool", "true", description="Enable Stage Manager"),
+    # Setting("com.apple.WindowManager", "EnableStandardClickToShowDesktop", "regular", "-bool", "true", description="Click wallpaper to reveal desktop"),
+    # Setting("com.apple.WindowManager", "AutoHide", "regular", "-bool", "false", description="Disable Stage Manager auto-hide"),
+    # Setting("com.apple.WindowManager", "AppRecents", "regular", "-bool", "true", description="Enable recent apps in Stage Manager"),
+    # Setting("com.apple.WindowManager", "AppWindowGrouping", "regular", "-int", "1", description="Show one window per app"),
+    # Setting("com.apple.WindowManager", "ShowWidgetsOnDesktop", "regular", "-bool", "true", description="Enable widgets on Desktop"),
+    # Setting("com.apple.WindowManager", "ShowWidgetsInStageManager", "regular", "-bool", "true", description="Enable widgets in Stage Manager"),
+    # Setting("com.apple.WindowManager", "WidgetStyle", "regular", "-int", "0", description="Set widget style to automatic"),
 ]
 
 launch_services_settings = [
-    Setting("com.apple.LaunchServices/com.apple.launchservices.secure", "LSHandlers", "array_add",
-            value='{LSHandlerRoleAll="com.google.chrome";LSHandlerURLScheme="http";}',
-            description="Set Chrome as default for HTTP", requires_sudo=True),
-    Setting("com.apple.LaunchServices/com.apple.launchservices.secure", "LSHandlers", "array_add",
-            value='{LSHandlerRoleAll="com.google.chrome";LSHandlerURLScheme="https";}',
-            description="Set Chrome as default for HTTPS", requires_sudo=True),
+    # Setting("com.apple.LaunchServices/com.apple.launchservices.secure", "LSHandlers", "array_add", value='{LSHandlerRoleAll="com.google.chrome";LSHandlerURLScheme="http";}', description="Set Chrome as default for HTTP", requires_sudo=True),
+    # Setting("com.apple.LaunchServices/com.apple.launchservices.secure", "LSHandlers", "array_add", value='{LSHandlerRoleAll="com.google.chrome";LSHandlerURLScheme="https";}', description="Set Chrome as default for HTTPS", requires_sudo=True),
 ]
 
 trackpad_settings = [
-    Setting("com.apple.AppleMultitouchTrackpad", "TrackpadThreeFingerDrag",
-            "regular", "-bool", "true", description="Enable three-finger drag"),
-    Setting("com.apple.AppleMultitouchTrackpad", "Clicking", "regular",
-            "-bool", "true", description="Enable tap to click"),
+    # Setting("com.apple.AppleMultitouchTrackpad", "TrackpadThreeFingerDrag", "regular", "-bool", "true", description="Enable three-finger drag"),
+    # Setting("com.apple.AppleMultitouchTrackpad", "Clicking", "regular", "-bool", "true", description="Enable tap to click"),
 ]
 
 keyboard_extras_settings = [
-    Setting("com.apple.BezelServices", "kDim", "regular", "-bool",
-            "true", description="Adjust keyboard brightness in low light"),
-    Setting("com.apple.BezelServices", "kDimTime", "regular", "-int",
-            "300", description="Keyboard backlight off after 5 minutes"),
-    Setting("com.apple.HIToolbox", "AppleFnUsageType", "regular", "-int",
-            "2", description="Set Globe key to show Emoji & Symbols"),
+    # Setting("com.apple.BezelServices", "kDim", "regular", "-bool", "true", description="Adjust keyboard brightness in low light"),
+    # Setting("com.apple.BezelServices", "kDimTime", "regular", "-int", "300", description="Keyboard backlight off after 5 minutes"),
+    # Setting("com.apple.HIToolbox", "AppleFnUsageType", "regular", "-int", "2", description="Set Globe key to show Emoji & Symbols"),
 ]
 
 security_settings = [
-    Setting("com.apple.screensaver", "askForPassword", "regular",
-            "-int", "1", description="Require password immediately"),
-    Setting("com.apple.screensaver", "askForPasswordDelay", "regular",
-            "-int", "0", description="Password required after sleep/screensaver"),
+    Setting("com.apple.screensaver", "askForPassword", "regular", "-int", "1", description="Require password immediately"),
+    Setting("com.apple.screensaver", "askForPasswordDelay", "regular", "-int", "0", description="Password required after sleep/screensaver"),
 ]
 
 notification_settings = [
@@ -286,25 +267,24 @@ notification_settings = [
 ]
 
 terminal_settings = [
-    Setting("com.apple.Terminal", "ShellExitAction", "regular",
-            "-int", "1", description="Close shell on exit"),
+    Setting("com.apple.Terminal", "ShellExitAction", "regular", "-int", "1", description="Close shell on exit"),
 ]
 
 date_time_settings = [
-    Setting("com.apple.menuextra.clock", "DateFormat", "regular",
-            "-string", "'EEE d MMM h:mm:ss'", description="Set clock format"),
-    Setting("com.apple.menuextra.clock", "ShowDate", "regular",
-            "-int", "2", description="Always show date"),
-    Setting("com.apple.menuextra.clock", "ShowDayOfWeek", "regular",
-            "-bool", "true", description="Show day of week"),
-    Setting("com.apple.menuextra.clock", "IsAnalog", "regular",
-            "-bool", "false", description="Set time style to digital"),
-    Setting("com.apple.menuextra.clock", "ShowAMPM", "regular",
-            "-bool", "false", description="Disable AM/PM display"),
-    Setting("com.apple.menuextra.clock", "FlashDateSeparators", "regular",
-            "-bool", "false", description="Disable flashing time separators"),
-    Setting("com.apple.menuextra.clock", "ShowSeconds", "regular",
-            "-bool", "true", description="Display time with seconds"),
+    # Setting("com.apple.menuextra.clock", "DateFormat", "regular",
+    #         "-string", "'EEE d MMM h:mm:ss'", description="Set clock format"),
+    # Setting("com.apple.menuextra.clock", "ShowDate", "regular",
+    #         "-int", "2", description="Always show date"),
+    # Setting("com.apple.menuextra.clock", "ShowDayOfWeek", "regular",
+    #         "-bool", "true", description="Show day of week"),
+    # Setting("com.apple.menuextra.clock", "IsAnalog", "regular",
+    #         "-bool", "false", description="Set time style to digital"),
+    # Setting("com.apple.menuextra.clock", "ShowAMPM", "regular",
+    #         "-bool", "false", description="Disable AM/PM display"),
+    # Setting("com.apple.menuextra.clock", "FlashDateSeparators", "regular",
+    #         "-bool", "false", description="Disable flashing time separators"),
+    # Setting("com.apple.menuextra.clock", "ShowSeconds", "regular",
+    #         "-bool", "true", description="Display time with seconds"),
     Setting("com.apple.speech.synthesis.general.prefs", "TimeAnnouncementPrefs", "dict",
             dict_items=[
                 ("TimeAnnouncementsEnabled", "-bool", "true"),
@@ -314,8 +294,7 @@ date_time_settings = [
 ]
 
 additional_settings = [
-    Setting("com.apple.CoreBrightness", "NightShiftEnabled", "regular",
-            "-bool", "true", description="Enable Night Shift"),
+    # Setting("com.apple.CoreBrightness", "NightShiftEnabled", "regular", "-bool", "true", description="Enable Night Shift"),
 ]
 
 # --- Main Execution Logic ---
@@ -388,8 +367,6 @@ class MacOSSetting:
 
 
 if __name__ == "__main__":
-    print("Skipping macOS settings for now..")
-    sys.exit(0)
     if sys.platform != "darwin":
         logging.error("This script is only supported on macOS.")
         sys.exit(1)

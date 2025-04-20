@@ -135,3 +135,10 @@ blue = "#648ad1"
 magenta = "#a07fd5"
 cyan = "#66a6df"
 white = "#8d97b4"
+
+[terminal.shell]
+{{ if eq .chezmoi.os "darwin" }}
+program = "/opt/homebrew/bin/fish"
+{{ else if eq .chezmoi.os "linux" }}
+program = "/usr/bin/fish"
+{{ end }}
