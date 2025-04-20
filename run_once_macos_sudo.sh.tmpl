@@ -1,0 +1,43 @@
+#!/bin/bash
+{{ if eq .chezmoi.os "darwin" }}
+set -euo pipefail
+
+echo "Setting macOS defaults..."
+
+osascript -e 'tell application "System Preferences" to quit'
+
+sudo -v
+
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+
+PAM_FILE="/etc/pam.d/sudo"
+
+# Check if pam_tid.so is already enabled
+if sudo grep -q "pam_tid.so" "$PAM_FILE"; then
+    echo "Fingerprint authentication is already enabled for sudo."
+    exit 0
+fi
+
+sudo cp "$PAM_FILE" "${PAM_FILE}.bak"
+echo "Created backup of $PAM_FILE at ${PAM_FILE}.bak"
+
+# Add pam_tid.so for Touch ID authentication
+if ! sudo grep -q "auth       sufficient     pam_tid.so" "$PAM_FILE"; then
+    # Insert pam_tid.so after the first line
+    sudo sed -i '' '1 a\
+auth       sufficient     pam_tid.so
+' "$PAM_FILE"
+    echo "Enabled fingerprint authentication for sudo."
+else
+    echo "Configuration already exists."
+fi
+
+# Verify the change
+if sudo grep -q "pam_tid.so" "$PAM_FILE"; then
+    echo "Verification successful: Fingerprint authentication is now enabled."
+else
+    echo "Error: Failed to enable fingerprint authentication."
+    exit 1
+fi
+
+{{ end }}

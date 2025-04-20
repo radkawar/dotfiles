@@ -1,7 +1,8 @@
 # -- GENERAL ------------------------------------------------------------------
 
 set-option -g default-terminal "tmux-256color"
-set-option -sa terminal-features ',alacritty:RGB'
+set-option -sa terminal-overrides ",alacritty:RGB,xterm-256color:RGB"
+set-option -g focus-events on
 set -g prefix C-a
 unbind C-b
 bind C-a send-prefix
@@ -13,46 +14,62 @@ set -g default-command {{ if eq .chezmoi.os "darwin" }}"/opt/homebrew/bin/fish -
 set -g base-index 1
 setw -g pane-base-index 1
 set -g renumber-windows on
-set -g history-limit 10000
+set -g history-limit 50000
 set -g mouse on
 set -sg escape-time 100
+set -g status-interval 5
 
 # -- DISPLAY ------------------------------------------------------------------
 
 set -g status-position bottom
-set -g status-style bg="#282828",fg="#ebdbb2"
-set -g status-left "#[fg=#83a598][#S] "
-set -g status-right "#[fg=#b8bb26]#{host} #[fg=#fabd2f]%Y-%m-%d %H:%M"
+set -g status-style bg="#648ad1",fg="#c0caf5"
+set -g status-left "#[fg=#c0caf5,bg=#414868,bold] #S #[fg=#414868,bg=#648ad1,nobold]"
+set -g status-right "#[fg=#414868,bg=#648ad1]#[fg=#c0caf5,bg=#414868] #{?window_zoomed_flag,#[fg=#f7768e] Z ,} #[fg=#e0af68]%Y-%m-%d %H:%M "
 set -g status-right-length 50
 set -g status-left-length 30
 
-setw -g window-status-current-style fg="#ebdbb2",bg="#504945"
-setw -g window-status-current-format ' #I:#W '
-setw -g window-status-style fg="#a89984",bg="#3c3836"
+setw -g window-status-current-style fg="#1a1b26",bg="#7dcfff"
+setw -g window-status-current-format "#[fg=#648ad1,bg=#7dcfff]#[fg=#1a1b26,bg=#7dcfff,bold] #I:#W #[fg=#7dcfff,bg=#648ad1,nobold]"
+setw -g window-status-style fg="#8d97b4",bg="#648ad1"
 setw -g window-status-format ' #I:#W '
 
-set -g pane-border-style fg="#3c3836"
-set -g pane-active-border-style fg="#504945"
+set -g pane-border-style fg="#8d97b4"
+set -g pane-active-border-style fg="#e0af68"
+
+# -- CLIPBOARD ----------------------------------------------------------------
+
+# Define clipboard command based on OS
+{{ if eq .chezmoi.os "darwin" }}
+set -g @clipboard-cmd "pbcopy"
+{{ else if eq .chezmoi.os "linux" }}
+set -g @clipboard-cmd "xclip -in -selection clipboard"
+{{ else }}
+set -g @clipboard-cmd "cat > /dev/null"
+{{ end }}
 
 # -- NAVIGATION & DEVELOPER SHORTCUTS -----------------------------------------
 
-# Pane navigation (vim-like, no overlap with prefix)
-bind h select-pane -L
-bind j select-pane -D
-bind k select-pane -U
-bind l select-pane -R
+# Pane navigation (vim-like, no prefix, aligned with VSCode)
+bind -n C-h select-pane -L
+bind -n C-j select-pane -D
+bind -n C-k select-pane -U
+bind -n C-l select-pane -R
 
 # Window management
 bind t new-window -c "#{pane_current_path}"    # 't' for tab
 bind w choose-tree -Zs                         # 'w' for window overview
 bind n next-window                            # 'n' for next
 bind p previous-window                        # 'p' for previous
+bind C new-session -s "new-session"           # 'C' for create session
+bind S choose-session                         # 'S' for session overview
 
-# Pane splitting (intuitive s/v for split/vertical)
-bind s split-window -v -c "#{pane_current_path}"
-bind v split-window -h -c "#{pane_current_path}"
+# Pane splitting
+bind s split-window -v -c "#{pane_current_path}"  # 's' for split horizontal
+bind v split-window -h -c "#{pane_current_path}"  # 'v' for split vertical
+bind -n M-s run-shell "tmux split-window -v -p 30 -c '#{pane_current_path}'"  # Alt+s for VSCode-like terminal
+bind -n M-t split-window -h -c "#{pane_current_path}"  # Alt+t for quick terminal
 
-# Pane resizing (Ctrl+arrow keys)
+# Pane resizing
 bind -r C-Left resize-pane -L 5
 bind -r C-Right resize-pane -R 5
 bind -r C-Up resize-pane -U 5
@@ -65,24 +82,35 @@ bind r rotate-window                          # 'r' to rotate
 
 # Developer workflow
 bind e command-prompt -p "Rename window:" "rename-window '%%'"  # 'e' for edit name
-bind R source-file ~/.config/tmux/tmux.conf \; display "Config reloaded"  # 'R' to reload
+bind R source-file ~/.tmux/tmux.conf \; display "Config reloaded"  # 'R' to reload
+bind g run-shell "tmux split-window -h -c '#{pane_current_path}' 'go run .'"  # 'g' for go run
+bind N run-shell "tmux split-window -h -c '#{pane_current_path}' 'npm start'"  # 'N' for npm start
+bind G run-shell "tmux split-window -h -c '#{pane_current_path}' 'lazygit'"  # 'G' for lazygit
+bind c run-shell "tmux split-window -h -c '#{pane_current_path}' 'git commit'"  # 'c' for git commit
 
-# Copy mode (vi-like)
+# -- COPY MODE ----------------------------------------------------------------
+
 set -g mode-keys vi
 bind Space copy-mode
 bind -T copy-mode-vi v send -X begin-selection
-bind -T copy-mode-vi y send -X copy-selection-and-cancel
+bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "#{@clipboard-cmd}"
+bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "#{@clipboard-cmd}"
 bind -T copy-mode-vi Escape send -X cancel
 bind -T copy-mode-vi H send -X start-of-line
 bind -T copy-mode-vi L send -X end-of-line
+bind -T copy-mode-vi / command-prompt -p "Search forward:" "send -X search-forward '%%'"
+bind -T copy-mode-vi ? command-prompt -p "Search backward:" "send -X search-backward '%%'"
+bind -T copy-mode-vi n send -X search-again
+bind -T copy-mode-vi N send -X search-reverse
 
-{{ if eq .chezmoi.os "darwin" }}
-bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "pbcopy"
-{{ else if eq .chezmoi.os "linux" }}
-bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "xclip -in -selection clipboard"
-{{ end }}
+# -- PLUGINS ------------------------------------------------------------------
 
-# Monitoring
-setw -g monitor-activity on
+run-shell ~/.tmux/plugins/tmux-resurrect/resurrect.tmux
+run-shell ~/.tmux/plugins/tmux-continuum/continuum.tmux
+set -g @continuum-restore 'on'
+set -g @resurrect-capture-pane-contents 'on'
+
+# -- MONITORING ---------------------------------------------------------------
+
+setw -g monitor-activity off
 set -g visual-activity off
-er (keep this line at the bottom of the file)
