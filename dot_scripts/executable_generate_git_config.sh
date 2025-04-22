@@ -17,7 +17,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-TAG="TYPE:AWS_ACCESS_KEY"
+TAG="TYPE:GIT_SSH_KEY"
 OUTPUT_FILE="$HOME/.aws/config"
 CREDENTIALS_FILE="$HOME/.aws/credentials"
 
