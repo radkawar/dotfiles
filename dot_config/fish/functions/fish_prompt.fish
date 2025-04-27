@@ -56,5 +56,20 @@ function fish_prompt
         set prompt_first_part (set_color cyan)"[$time]" (set_color green)" $initial@$ip" (set_color yellow)" $shortened_path" $git_branch
     end
 
-    echo -n $prompt_first_part (set_color normal)"❯ "
+    # Display last command status if it's non-zero
+    set last_status $status
+    set status_string ""
+    if test $last_status -ne 0
+        set status_string " "(set_color red)"($last_status)"
+    end
+
+    # Display command duration if it's significant
+    set duration_string ""
+    if test -n "$CMD_DURATION" -a "$CMD_DURATION" -gt 1000 # Threshold: 1000ms
+        # Format duration (e.g., 1.2s)
+        set duration_s (math --scale=1 "$CMD_DURATION / 1000")
+        set duration_string " "(set_color blue)"($duration_s"s")"
+    end
+
+    echo -n $prompt_first_part $status_string $duration_string (set_color normal)"❯ "
 end
