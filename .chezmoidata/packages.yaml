@@ -1,24 +1,34 @@
 packages:
   common:
     brews:
-      - neovim
-      - ripgrep
-      - fd
-      - fzf
-      - gcc
-      - lazygit
-      - wezterm
-      - go
-      - fish
-      - xclip
-      - node
-      - alacritty
-      - tmux
-      - luarocks
-      - jq
-      - awscli
+      - "cloudflared"
+      - "fd"
+      - "fish"
+      - "fzf"
+      - "gcc"
+      - "git"
+      - "gitui"
+      - "go"
+      - "jq"
+      - "lazygit"
+      - "luarocks"
+      - "neovim"
+      - "node"
+      - "pipx"
+      - "pulumi"
+      - "ripgrep"
+      - "terraform"
+      - "tmux"
+      - "turbot/tap/steampipe"
+      - "wget"
+      - "xclip"
     casks:
+      - 1password
+      - 1password-cli
+      - alacritty
       - font-jetbrains-mono-nerd-font
+      - mullvadvpn
+      - wezterm
 
   darwin:
     brews:

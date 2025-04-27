@@ -103,6 +103,10 @@ bind -T copy-mode-vi ? command-prompt -p "Search backward:" "send -X search-back
 bind -T copy-mode-vi n send -X search-again
 bind -T copy-mode-vi N send -X search-reverse
 
+# Add bindings for slower mouse wheel scrolling
+bind -T copy-mode-vi WheelUpPane send-keys -X scroll-up
+bind -T copy-mode-vi WheelDownPane send-keys -X scroll-down
+
 # -- PLUGINS ------------------------------------------------------------------
 
 run-shell ~/.tmux/plugins/tmux-resurrect/resurrect.tmux
