@@ -1,26 +1,31 @@
 function __aws_config_sync_get_regions
-    # Static list of common regions
-    echo us-east-1
-    echo us-east-2
-    echo us-west-1
-    echo us-west-2
-    echo af-south-1
-    echo ap-east-1
-    echo ap-south-1
-    echo ap-northeast-1
-    echo ap-northeast-2
-    echo ap-northeast-3
-    echo ap-southeast-1
-    echo ap-southeast-2
-    echo ca-central-1
-    echo eu-central-1
-    echo eu-west-1
-    echo eu-west-2
-    echo eu-west-3
-    echo eu-south-1
-    echo eu-north-1
-    echo me-south-1
-    echo sa-east-1
+    # Try to fetch regions dynamically using AWS CLI
+    if command -v aws >/dev/null 2>&1
+        aws ec2 describe-regions --query 'Regions[].RegionName' --output text 2>/dev/null | tr '\t' '\n' | sort
+    else
+        # Fallback to static list
+        echo us-east-1
+        echo us-east-2
+        echo us-west-1
+        echo us-west-2
+        echo af-south-1
+        echo ap-east-1
+        echo ap-south-1
+        echo ap-northeast-1
+        echo ap-northeast-2
+        echo ap-northeast-3
+        echo ap-southeast-1
+        echo ap-southeast-2
+        echo ca-central-1
+        echo eu-central-1
+        echo eu-west-1
+        echo eu-west-2
+        echo eu-west-3
+        echo eu-south-1
+        echo eu-north-1
+        echo me-south-1
+        echo sa-east-1
+    end
 end
 
 function aws_config_sync --description "Manage AWS credentials with 1Password integration"
@@ -41,12 +46,14 @@ function aws_config_sync --description "Manage AWS credentials with 1Password in
         echo ""
         echo "Examples:"
         echo "  aws_config_sync list                             # List all profiles"
-        echo "  aws_config_sync list --filter prod               # List profiles containing 'prod'"
+        echo "  aws_config_sync list --account 123456789012      # List profiles for specific account"
+        echo "  aws_config_sync list --region us-east-1          # List profiles in specific region"
+        echo "  aws_config_sync list --org myorg                 # List profiles for specific organization"
         echo "  aws_config_sync sync                             # Sync all profiles (credential process)"
         echo "  aws_config_sync sync --profile my-prof           # Sync specific profile"
         echo "  aws_config_sync sync --inline                    # Sync with inline credentials"
         echo "  aws_config_sync get my-profile                   # Get credentials for a profile"
-        echo "  aws_config_sync create --account 123456789012    # Create a new credential"
+        echo "  aws_config_sync create                           # Create a new credential (interactive)"
         echo ""
         return 0
     end
@@ -62,7 +69,7 @@ function aws_config_sync --description "Manage AWS credentials with 1Password in
 
         case "list"
             # Parse list arguments
-            argparse 'v/verbose' 'f/filter=' 'r/region=' 'j/json' -- $argv
+            argparse 'v/verbose' 'a/account=' 'r/region=' 'o/org=' 'j/json' -- $argv
             or return 1
 
             set -l current_profile $AWS_PROFILE
@@ -82,9 +89,14 @@ function aws_config_sync --description "Manage AWS credentials with 1Password in
                 set items (echo "$items" | jq -c --arg region "REGION:$_flag_region" '[.[] | select(.tags[] | contains($region))]')
             end
 
-            # Apply name filter if specified
-            if set -q _flag_filter
-                set items (echo "$items" | jq -c --arg filter "$_flag_filter" '[.[] | select(.title | contains($filter) or (.tags[] | select(startswith("TYPE:AWS_ACCESS_KEY/")) | contains($filter)))]')
+            # Apply account ID filter if specified
+            if set -q _flag_account
+                set items (echo "$items" | jq -c --arg account "$_flag_account" '[.[] | select(.tags[] | select(startswith("TYPE:AWS_ACCESS_KEY/")) | contains($account))]')
+            end
+
+            # Apply organization filter if specified
+            if set -q _flag_org
+                set items (echo "$items" | jq -c --arg org "ORG:$_flag_org" '[.[] | select(.tags[] | contains($org))]')
             end
 
             # JSON output if requested
@@ -93,60 +105,150 @@ function aws_config_sync --description "Manage AWS credentials with 1Password in
                 return 0
             end
 
-            # Extract profile names for proper spacing calculation
-            set -l profile_names
-            echo "$items" | jq -c '.[]' | while read -l item
-                set -l tag_value (echo "$item" | jq -r --arg tag "$tag" '.tags[] | select(startswith($tag + "/"))')
-                set -l profile_name (echo "$tag_value" | sed "s/TYPE:AWS_ACCESS_KEY\///")
-                set profile_names $profile_names $profile_name
-            end
+            # First pass: determine maximum column widths
+            set -l max_profile_len 7 # Minimum width for "Profile"
+            set -l max_region_len 6 # Minimum width for "Region"
+            set -l max_org_len 12 # Minimum width for "Organization"
+            set -l max_title_len 10 # Minimum width for "Item Title"
+            set -l max_vault_len 5 # Minimum width for "Vault"
+            set -l max_status_len 6 # Minimum width for "Status"
+            set -l max_current_len 7 # Minimum width for "Current"
 
-            # Print a table of profiles
-            if set -q _flag_verbose
-                printf "┌───────────────────┬────────────┬────────────────┬───────────────┬────────┐\n"
-                printf "│ Profile           │ Region     │ Item Title     │ Vault         │ Current│\n"
-                printf "├───────────────────┼────────────┼────────────────┼───────────────┼────────┤\n"
-            else
-                printf "┌───────────────────┬────────────┬───────────────┐\n"
-                printf "│ Profile           │ Region     │ Status        │\n"
-                printf "├───────────────────┼────────────┼───────────────┤\n"
-            end
-
-            # Process each item and display in table format
             echo "$items" | jq -c '.[]' | while read -l item
                 set -l title (echo "$item" | jq -r '.title')
                 set -l vault_name (echo "$item" | jq -r '.vault.name')
                 set -l tag_value (echo "$item" | jq -r --arg tag "$tag" '.tags[] | select(startswith($tag + "/"))')
                 set -l profile_name (echo "$tag_value" | sed "s/TYPE:AWS_ACCESS_KEY\///")
                 set -l region (echo "$item" | jq -r '.tags[] | select(startswith("REGION:")) | sub("REGION:"; "")')
+                set -l org (echo "$item" | jq -r '.tags[] | select(startswith("ORG:")) | sub("ORG:"; "")')
                 
                 if test -z "$region"; or test "$region" = "null"
                     set region "not set"
                 end
                 
-                # Check if this is the current profile
-                set -l current_marker " "
-                if test "$AWS_PROFILE" = "$profile_name"
-                    set current_marker "*"
+                if test -z "$org"; or test "$org" = "null"
+                    set org "not set"
+                end
+
+                # Update max lengths
+                set -l profile_len (string length "$profile_name")
+                if test $profile_len -gt $max_profile_len
+                    set max_profile_len $profile_len
                 end
                 
-                # Format output with fixed width columns
-                if set -q _flag_verbose
-                    printf "│ %-17s │ %-10s │ %-14s │ %-13s │   %-4s │\n" $profile_name $region $title $vault_name $current_marker
+                set -l region_len (string length "$region")
+                if test $region_len -gt $max_region_len
+                    set max_region_len $region_len
+                end
+                
+                set -l org_len (string length "$org")
+                if test $org_len -gt $max_org_len
+                    set max_org_len $org_len
+                end
+                
+                set -l title_len (string length "$title")
+                if test $title_len -gt $max_title_len
+                    set max_title_len $title_len
+                end
+                
+                set -l vault_len (string length "$vault_name")
+                if test $vault_len -gt $max_vault_len
+                    set max_vault_len $vault_len
+                end
+                
+                # Set status length (needed for both verbose and non-verbose)
+                set -l status_len
+                if test "$AWS_PROFILE" = "$profile_name"
+                    set status_len (string length "CURRENT")
                 else
-                    if test "$AWS_PROFILE" = "$profile_name" 
-                        printf "│ %-17s │ %-10s │ %-13s │\n" $profile_name $region "CURRENT"
-                    else
-                        printf "│ %-17s │ %-10s │ %-13s │\n" $profile_name $region "available"
-                    end
+                    set status_len (string length "available")
+                end
+                if test $status_len -gt $max_status_len
+                    set max_status_len $status_len
+                end
+                
+                # Current marker length is always 1 character
+                if test 7 -gt $max_current_len # 7 is the length of "Current"
+                    set max_current_len 7
                 end
             end
 
-            # Close the table
+            # Add padding to column widths
+            set max_profile_len (math "$max_profile_len + 2")
+            set max_region_len (math "$max_region_len + 2")
+            set max_org_len (math "$max_org_len + 2")
+            set max_title_len (math "$max_title_len + 2")
+            set max_vault_len (math "$max_vault_len + 2")
+            set max_status_len (math "$max_status_len + 2")
+
+            # Create border strings
+            set -l profile_border (string repeat -n (math "$max_profile_len + 2") "─")
+            set -l region_border (string repeat -n (math "$max_region_len + 2") "─")
+            set -l org_border (string repeat -n (math "$max_org_len + 2") "─")
+            set -l title_border (string repeat -n (math "$max_title_len + 2") "─")
+            set -l vault_border (string repeat -n (math "$max_vault_len + 2") "─")
+            set -l status_border (string repeat -n (math "$max_status_len + 2") "─")
+            set -l current_border (string repeat -n 9 "─")
+
+            # Print a table of profiles with dynamic widths
             if set -q _flag_verbose
-                printf "└───────────────────┴────────────┴────────────────┴───────────────┴────────┘\n"
+                # Create format strings for table headers and borders
+                set -l header_format "│ %-"$max_profile_len"s │ %-"$max_region_len"s │ %-"$max_org_len"s │ %-"$max_title_len"s │ %-"$max_vault_len"s │ %-"$max_status_len"s │ %-7s │"
+                
+                # Print top border
+                echo "┌$profile_border┬$region_border┬$org_border┬$title_border┬$vault_border┬$status_border┬$current_border┐"
+                printf "$header_format\n" "Profile" "Region" "Organization" "Item Title" "Vault" "Status" "Current"
+                echo "├$profile_border┼$region_border┼$org_border┼$title_border┼$vault_border┼$status_border┼$current_border┤"
             else
-                printf "└───────────────────┴────────────┴───────────────┘\n"
+                # Create format strings for table headers and borders
+                set -l header_format "│ %-"$max_profile_len"s │ %-"$max_region_len"s │ %-"$max_org_len"s │ %-"$max_status_len"s │"
+                
+                # Print top border
+                echo "┌$profile_border┬$region_border┬$org_border┬$status_border┐"
+                printf "$header_format\n" "Profile" "Region" "Organization" "Status"
+                echo "├$profile_border┼$region_border┼$org_border┼$status_border┤"
+            end
+
+            # Process each item and display in table format with dynamic widths
+            echo "$items" | jq -c '.[]' | while read -l item
+                set -l title (echo "$item" | jq -r '.title')
+                set -l vault_name (echo "$item" | jq -r '.vault.name')
+                set -l tag_value (echo "$item" | jq -r --arg tag "$tag" '.tags[] | select(startswith($tag + "/"))')
+                set -l profile_name (echo "$tag_value" | sed "s/TYPE:AWS_ACCESS_KEY\///")
+                set -l region (echo "$item" | jq -r '.tags[] | select(startswith("REGION:")) | sub("REGION:"; "")')
+                set -l org (echo "$item" | jq -r '.tags[] | select(startswith("ORG:")) | sub("ORG:"; "")')
+                
+                if test -z "$region"; or test "$region" = "null"
+                    set region "not set"
+                end
+                
+                if test -z "$org"; or test "$org" = "null"
+                    set org "not set"
+                end
+                
+                # Check if this is the current profile
+                set -l current_marker ""
+                set -l profile_status "available"
+                if test "$AWS_PROFILE" = "$profile_name"
+                    set current_marker "*"
+                    set profile_status "CURRENT"
+                end
+                
+                # Format output with dynamic width columns
+                if set -q _flag_verbose
+                    set -l row_format "│ %-"$max_profile_len"s │ %-"$max_region_len"s │ %-"$max_org_len"s │ %-"$max_title_len"s │ %-"$max_vault_len"s │ %-"$max_status_len"s │ %-7s │"
+                    printf "$row_format\n" $profile_name $region $org $title $vault_name $profile_status $current_marker
+                else
+                    set -l row_format "│ %-"$max_profile_len"s │ %-"$max_region_len"s │ %-"$max_org_len"s │ %-"$max_status_len"s │"
+                    printf "$row_format\n" $profile_name $region $org $profile_status
+                end
+            end
+
+            # Close the table with dynamic widths
+            if set -q _flag_verbose
+                echo "└$profile_border┴$region_border┴$org_border┴$title_border┴$vault_border┴$status_border┴$current_border┘"
+            else
+                echo "└$profile_border┴$region_border┴$org_border┴$status_border┘"
             end
 
         case "sync"
@@ -265,11 +367,9 @@ function aws_config_sync --description "Manage AWS credentials with 1Password in
                     set -l access_key (echo "$credentials" | jq -r '.[] | select(.label=="AccessKeyId") | .value')
                     set -l secret_key (echo "$credentials" | jq -r '.[] | select(.label=="SecretAccessKey") | .value')
                     
-                    echo "# AWS credentials for profile: $profile_name"
                     echo "export AWS_ACCESS_KEY_ID=$access_key"
                     echo "export AWS_SECRET_ACCESS_KEY=$secret_key"
                     
-                    # Try to copy to clipboard if available
                     set -l clipboard_cmd ""
                     if command -v pbcopy >/dev/null 2>&1
                         set clipboard_cmd "pbcopy"
@@ -278,8 +378,7 @@ function aws_config_sync --description "Manage AWS credentials with 1Password in
                     end
                     
                     if test -n "$clipboard_cmd"
-                        echo -e "export AWS_ACCESS_KEY_ID=$access_key\nexport AWS_SECRET_ACCESS_KEY=$secret_key" | eval $clipboard_cmd
-                        echo "# Credentials copied to clipboard"
+                       echo -e "export AWS_ACCESS_KEY_ID=$access_key\nexport AWS_SECRET_ACCESS_KEY=$secret_key" | eval $clipboard_cmd
                     end
                     
                     break
@@ -292,110 +391,137 @@ function aws_config_sync --description "Manage AWS credentials with 1Password in
             end
 
         case "create"
-            # Parse create arguments
-            argparse 'a/account=' 'u/user=' 'r/region=' 'v/vault=' 'o/org=' -- $argv
-            or return 1
+            # Prompt for AWS access key ID
+            echo "Enter AWS Access Key ID:"
+            read -s access_key
+            if test -z "$access_key"
+                echo "Error: Access Key ID is required."
+                return 1
+            end
+            echo "Access Key ID received"
             
-            # Check for account ID (required)
-            if not set -q _flag_account
-                echo "Error: Account ID is required. Usage: aws_config_sync create --account ACCOUNT_ID"
+            # Prompt for AWS secret access key
+            echo "Enter AWS Secret Access Key:"
+            read -s secret_key
+            if test -z "$secret_key"
+                echo "Error: Secret Access Key is required."
+                return 1
+            end
+            echo "Secret Access Key received"
+            
+            # Set temporary AWS credentials for STS call
+            set -gx AWS_ACCESS_KEY_ID $access_key
+            set -gx AWS_SECRET_ACCESS_KEY $secret_key
+            
+            # Call get-caller-identity to validate the credentials and get user/account info
+            set -l sts_result (aws sts get-caller-identity --output json 2>&1)
+            set -l sts_status $status
+            
+            if test $sts_status -ne 0
+                echo "Error validating AWS credentials:"
+                echo $sts_result
+                set -e AWS_ACCESS_KEY_ID
+                set -e AWS_SECRET_ACCESS_KEY
                 return 1
             end
             
-            # Validate account ID format
-            if not string match -qr '^[0-9]{12}$' $_flag_account
-                echo "Warning: Account ID should be a 12-digit number. Continuing anyway."
-            end
+            # Extract account ID and user type from STS response
+            set -l account_id (echo $sts_result | jq -r '.Account')
+            set -l user_arn (echo $sts_result | jq -r '.Arn')
             
-            # Set default values
-            set -l account_id $_flag_account
+            echo "Account ID: $account_id"
+            echo "User ARN: $user_arn"
+            # Determine if this is a root or IAM user
             set -l user_type "root"
+            set -l principal "root"
+            
+            if string match -q "*:user/*" $user_arn
+                set user_type "user/"(echo $user_arn | sed -n 's/.*:user\/\([^:]*\).*/\1/p')
+                set principal "user:"(echo $user_arn | sed -n 's/.*:user\/\([^:]*\).*/\1/p')
+            end
+            
+            echo "User type: $user_type"
+            echo "Principal: $principal"
+
+            # Try to get organization info
+            set -l org ""
+            set -l org_result (aws organizations describe-organization --output json 2>/dev/null)
+            set -l org_status $status
+            
+            if test $org_status -eq 0
+                set org (echo $org_result | jq -r '.Organization.Id')
+            else
+                # Prompt for organization if AWS CLI failed
+                echo "Enter organization ID (leave empty to skip):"
+                read input_org
+                if test -n "$input_org"
+                    set org $input_org
+                end
+            end
+            
+            # Prompt for AWS region
+            echo "Enter AWS region (default: us-east-1):"
+            read input_region
             set -l region "us-east-1"
+            if test -n "$input_region"
+                set region $input_region
+            end
+            
+            # Prompt for 1Password vault
+            echo "Enter 1Password vault name (default: dev):"
+            read input_vault
             set -l vault "dev"
-            set -l org_tag ""
-            
-            # Override defaults if specified
-            if set -q _flag_user
-                set user_type "user/$_flag_user"
+            if test -n "$input_vault"
+                set vault $input_vault
             end
             
-            if set -q _flag_region
-                set region $_flag_region
-            end
-            
-            if set -q _flag_vault
-                set vault $_flag_vault
-            end
-            
-            if set -q _flag_org
-                set org_tag "ORG:$_flag_org"
-            end
-            
-            # Format principal for tag
-            set -l principal $user_type
-            if string match -q "user/*" $user_type
-                set principal (string replace "user/" "user:" $user_type)
-            end
+            # Clean up temporary AWS environment variables
+            set -e AWS_ACCESS_KEY_ID
+            set -e AWS_SECRET_ACCESS_KEY
             
             # Generate item title
             set -l title "$account_id:$user_type"
             
-            # Generate tags
-            set -l tags "REGION:$region" "TYPE:AWS_ACCESS_KEY/$account_id/$principal"
-            if test -n "$org_tag"
-                set tags $tags $org_tag
+            # Generate tags as comma-separated string for 1Password CLI
+            set -l tags_str (string join , "REGION:$region" "TYPE:AWS_ACCESS_KEY/$account_id/$principal")
+            if test -n "$org"
+                set tags_str "$tags_str,ORG:$org"
             end
             
-            # Generate a random credential for initial creation
-            set -l random_access_key (random 20 | md5sum | string sub -l 20 | string upper)
-            set -l random_secret_key (random 40 | md5sum | string sub -l 40)
-            
-            # Create temporary JSON file for the new item
-            set -l temp_file (mktemp)
-            
-            # Create JSON structure
-            echo '{
-  "title": "'$title'",
-  "category": "API_CREDENTIAL",
-  "fields": [
-    {
-      "id": "access_key",
-      "type": "CONCEALED",
-      "purpose": "USERNAME",
-      "label": "AccessKeyId",
-      "value": "'$random_access_key'"
-    },
-    {
-      "id": "secret_key",
-      "type": "CONCEALED",
-      "purpose": "PASSWORD",
-      "label": "SecretAccessKey",
-      "value": "'$random_secret_key'"
-    }
-  ],
-  "tags": '(echo $tags | jq -R -s 'split(" ")' | tr -d '\n')' 
-}' > $temp_file
-            
             # Create the item in 1Password
-            set -l result (op item create --vault $vault --format json (cat $temp_file) 2>&1)
-            set -l status $status
-            
-            # Clean up temp file
-            rm $temp_file
+            set -l op_result (op item create \
+                --vault "$vault" \
+                --category "API Credential" \
+                --title "$title" \
+                --tags "$tags_str" \
+                "AccessKeyId[concealed]=$access_key" \
+                "SecretAccessKey[concealed]=$secret_key" \
+                --format json 2>&1)
+            set -l op_status $status
+            set -l op_item (echo $op_result | jq -r '.id')
             
             # Check result
-            if test $status -eq 0
+            if test $op_status -eq 0
+                op item edit $op_item --vault $vault  \
+                  "type[delete]" \
+                  "hostname[delete]" \
+                  "username[delete]" \
+                  "credential[delete]" \
+                  "filename[delete]" \
+                  "valid from[delete]" \
+                  "expires[delete]" 
+
                 echo "Created AWS credential in 1Password:"
                 echo "  Title:   $title"
                 echo "  Profile: $account_id/$principal"
                 echo "  Region:  $region"
+                if test -n "$org"
+                    echo "  Org:     $org"
+                end
                 echo "  Vault:   $vault"
-                echo ""
-                echo "IMPORTANT: Update with actual credentials using 1Password UI."
-                echo "The item was created with placeholder credentials."
             else
                 echo "Error creating AWS credential in 1Password:"
-                echo $result
+                echo $op_result
                 return 1
             end
 
@@ -416,26 +542,20 @@ complete -f -c aws_config_sync -n "__fish_use_subcommand" -a "help" -d "Show hel
 
 # Options for 'list' command
 complete -f -c aws_config_sync -n "__fish_seen_subcommand_from list" -s v -l verbose -d "Show detailed information"
-complete -f -c aws_config_sync -n "__fish_seen_subcommand_from list" -s f -l filter -d "Filter profiles by name pattern"
-complete -f -c aws_config_sync -n "__fish_seen_subcommand_from list" -s r -l region -d "Filter profiles by region"
+complete -f -c aws_config_sync -n "__fish_seen_subcommand_from list" -s a -l account -d "Filter by AWS account ID"
+complete -f -c aws_config_sync -n "__fish_seen_subcommand_from list" -s r -l region -d "Filter by AWS region"
+complete -f -c aws_config_sync -n "__fish_seen_subcommand_from list" -s o -l org -d "Filter by organization"
 complete -f -c aws_config_sync -n "__fish_seen_subcommand_from list" -s j -l json -d "Output in JSON format"
 
 # Options for 'sync' command
 complete -f -c aws_config_sync -n "__fish_seen_subcommand_from sync" -s i -l inline -d "Store credentials directly in ~/.aws/credentials"
 complete -f -c aws_config_sync -n "__fish_seen_subcommand_from sync" -s p -l profile -d "Sync only specific profile"
 
-# Options for 'create' command
-complete -f -c aws_config_sync -n "__fish_seen_subcommand_from create" -s a -l account -d "AWS account ID (12 digits)"
-complete -f -c aws_config_sync -n "__fish_seen_subcommand_from create" -s u -l user -d "Username (omit for root)"
-complete -f -c aws_config_sync -n "__fish_seen_subcommand_from create" -s r -l region -d "AWS region (default: us-east-1)"
-complete -f -c aws_config_sync -n "__fish_seen_subcommand_from create" -s v -l vault -d "1Password vault (default: dev)"
-complete -f -c aws_config_sync -n "__fish_seen_subcommand_from create" -s o -l org -d "Organization tag"
+# Region completion
+complete -f -c aws_config_sync -n "__fish_seen_subcommand_from list; and string match -q -- '--region' (commandline -ct); or string match -q -- '-r' (commandline -ct)" -a "(__aws_config_sync_get_regions)"
 
-# Region completion for 'create' command
-complete -f -c aws_config_sync -n "__fish_seen_subcommand_from create; and string match -q -- '--region' (commandline -ct); or string match -q -- '-r' (commandline -ct)" -a "(__aws_config_sync_get_regions)"
-
-# Vault completion for 'create' command
-complete -f -c aws_config_sync -n "__fish_seen_subcommand_from create; and string match -q -- '--vault' (commandline -ct); or string match -q -- '-v' (commandline -ct)" -a "(op vault list --format json | jq -r '.[].name')"
+# Vault completion
+complete -f -c aws_config_sync -n "__fish_contains_opt -s v vault create; or __fish_contains_opt -s v vault" -a "(op vault list --format json | jq -r '.[].name')"
 
 # Profile name completion for 'get' command
 complete -f -c aws_config_sync -n "__fish_seen_subcommand_from get; and test (count (commandline -opc)) -eq 2" -a "(aws_config_sync list -j | jq -r '.[] | .tags[] | select(startswith(\"TYPE:AWS_ACCESS_KEY/\")) | sub(\"TYPE:AWS_ACCESS_KEY/\"; \"\")' 2>/dev/null)" -d "AWS Profile"
