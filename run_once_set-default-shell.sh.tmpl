@@ -6,7 +6,7 @@ echo "🐟 Setting fish as the default shell..."
 {{- if eq .chezmoi.os "darwin" }}
 FISH_PATH="/opt/homebrew/bin/fish"
 {{- else if eq .chezmoi.os "linux" }}
-FISH_PATH="/home/linuxbrew/.linuxbrew/bin/fish"
+FISH_PATH="/usr/bin/fish"
 {{- else }}
 FISH_PATH="/usr/bin/fish"
 {{- end }}

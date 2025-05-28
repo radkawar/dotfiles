@@ -1,9 +1,9 @@
+{{- if eq .chezmoi.os "darwin" }}
+# macOS-only Brewfile
 tap "pulumi/tap"
 tap "turbot/tap"
-{{- if eq .chezmoi.os "linux" }}
-tap "wezterm/wezterm-linuxbrew"
-{{- end }}
 
+# Core tools
 brew "awscli"
 brew "chezmoi"
 brew "cloudflared"
@@ -26,14 +26,8 @@ brew "terraform"
 brew "tmux"
 brew "turbot/tap/steampipe"
 brew "wget"
-brew "xclip"
 
-{{- if eq .chezmoi.os "darwin" }}
-brew "git" 
-{{- else if eq .chezmoi.os "linux" }}
-brew "curl"
-{{- end }}
-
+# GUI applications
 cask "1password"
 cask "1password-cli"
 cask "alacritty"
@@ -41,11 +35,7 @@ cask "font-jetbrains-mono-nerd-font"
 cask "mullvadvpn"
 cask "wezterm"
 
-{{- if eq .chezmoi.os "darwin" }}
-cask "wezterm"
-cask "alacritty"
-{{- end }}
-
+# VS Code extensions
 vscode "amazonwebservices.aws-toolkit-vscode"
 vscode "enkia.tokyo-night"
 vscode "esbenp.prettier-vscode"
@@ -58,3 +48,4 @@ vscode "ms-python.debugpy"
 vscode "ms-python.python"
 vscode "ms-python.vscode-pylance"
 vscode "vscodevim.vim"
+{{- end }}

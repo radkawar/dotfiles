@@ -1,0 +1,99 @@
+#!/bin/bash
+{{- if eq .chezmoi.os "linux" }}
+set -e
+
+echo "Installing packages for Linux..."
+
+# Update package list
+sudo apt update
+
+# Core development tools
+CORE_PACKAGES=(
+    build-essential
+    curl
+    fd-find
+    fish
+    git
+    golang
+    jq
+    neovim
+    nodejs
+    npm
+    python3-pip
+    ripgrep
+    tmux
+    wget
+)
+
+# Server-specific packages (minimal set)
+SERVER_PACKAGES=(
+    "${CORE_PACKAGES[@]}"
+)
+
+# Desktop-specific packages (includes GUI apps)
+DESKTOP_PACKAGES=(
+    "${CORE_PACKAGES[@]}"
+    # Add desktop-only packages here if needed
+)
+
+# Detect if running on a server or desktop
+# You can customize this detection logic
+IS_SERVER=true
+if [[ -n "$DISPLAY" ]] || [[ -n "$WAYLAND_DISPLAY" ]]; then
+    IS_SERVER=false
+fi
+
+# Override with environment variable if set
+if [[ "${CHEZMOI_SERVER}" == "true" ]]; then
+    IS_SERVER=true
+fi
+
+# Install packages based on environment
+if [[ "$IS_SERVER" == "true" ]]; then
+    echo "Installing server packages..."
+    sudo apt install -y "${SERVER_PACKAGES[@]}"
+else
+    echo "Installing desktop packages..."
+    sudo apt install -y "${DESKTOP_PACKAGES[@]}"
+fi
+
+# Install additional tools not in apt
+echo "Installing additional tools..."
+
+# Install AWS CLI v2
+if ! command -v aws &> /dev/null; then
+    curl "https://awscli.amazonaws.com/awscli-exe-linux-aarch64.zip" -o "awscliv2.zip"
+    unzip awscliv2.zip
+    sudo ./aws/install
+    rm -rf awscliv2.zip aws/
+fi
+
+# Install chezmoi
+if ! command -v chezmoi &> /dev/null; then
+    sh -c "$(curl -fsLS get.chezmoi.io)" -- -b $HOME/.local/bin
+fi
+
+# Install lazygit
+if ! command -v lazygit &> /dev/null; then
+    LAZYGIT_VERSION=$(curl -s "https://api.github.com/repos/jesseduffield/lazygit/releases/latest" | jq -r '.tag_name')
+    curl -Lo lazygit.tar.gz "https://github.com/jesseduffield/lazygit/releases/latest/download/lazygit_${LAZYGIT_VERSION#v}_Linux_arm64.tar.gz"
+    tar xf lazygit.tar.gz lazygit
+    sudo install lazygit /usr/local/bin
+    rm lazygit.tar.gz lazygit
+fi
+
+# Install fzf
+if ! command -v fzf &> /dev/null; then
+    git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
+    ~/.fzf/install --all --no-zsh --no-bash
+fi
+
+# Create fd symlink (fd-find installs as fdfind on Ubuntu)
+if command -v fdfind &> /dev/null && ! command -v fd &> /dev/null; then
+    sudo ln -s $(which fdfind) /usr/local/bin/fd
+fi
+
+echo "Linux package installation complete!"
+{{- else }}
+echo "Not running on Linux"
+{{- end }}
