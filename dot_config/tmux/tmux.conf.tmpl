@@ -1,8 +1,88 @@
-# -- GENERAL ------------------------------------------------------------------
+# ==============================================================================
+# TMUX CONFIGURATION
+# ==============================================================================
+#
+# PREFIX KEY: Ctrl+a
+#
+# PANE OPERATIONS:
+#   Navigation:      C-a + h/j/k/l      Move left/down/up/right
+#   Splitting:       C-a + s            Split horizontally (new pane below)
+#                    C-a + v            Split vertically (new pane right)
+#   Resizing:        C-a + H/J/K/L      Resize left/down/up/right (vim-like)
+#                    C-a + Ctrl+arrows  Resize with arrow keys
+#   Actions:         C-a + x            Kill current pane
+#                    C-a + z            Zoom/maximize current pane
+#                    C-a + r            Rotate panes
+#                    C-a + p            Select pane (interactive)
+#                    C-a + q            Show pane numbers
+#
+# WINDOW OPERATIONS:
+#   Management:      C-a + t            New tab/window
+#                    C-a + n            Next window
+#                    C-a + p            Previous window  
+#                    C-a + w            Choose window (tree view)
+#                    C-a + e            Rename current window
+#                    C-a + 0-9          Switch to window number (0-9)
+#
+# SESSION OPERATIONS:
+#   Management:      C-a + C            Create new session
+#                    C-a + S            Choose session (interactive)
+#                    C-a + d            Detach from session
+#                    C-a + $            Rename current session
+#
+# COPY MODE:
+#   Enter:           C-a + Space        Enter copy mode
+#                    C-a + [            Enter copy mode (alternative)
+#   Navigation:      h/j/k/l            Move cursor
+#                    H/L                Start/end of line
+#                    /                  Search forward
+#                    ?                  Search backward
+#                    n/N                Next/previous search result
+#   Selection:       v                  Begin selection
+#                    y                  Copy selection and exit
+#   Exit:            Escape             Exit copy mode
+#
+# MOUSE OPERATIONS:
+#   Scrolling:       Mouse wheel        Smooth scrolling in active pane
+#   Selection:       Click & drag       Start text selection
+#                    Double-click       Select word
+#                    Triple-click       Select line
+#                    Shift+double       Select word and copy
+#                    Shift+triple       Select line and copy
+#   Context:         Right-click        Show context menu
+#
+# DEVELOPER SHORTCUTS:
+#   Git:             C-a + c            Git commit (new pane)
+#   Go:              C-a + g            Go run . (new pane)
+#   Node:            C-a + N            npm start (new pane)
+#   Config:          C-a + R            Reload tmux config
+#
+# SYSTEM:
+#   Help:            C-a + ?            List all key bindings
+#   Command:         C-a + :            Enter tmux command prompt
+#
+# PLUGINS (tmux-resurrect & tmux-continuum):
+#   Save:            C-a + Ctrl+s       Manually save tmux environment
+#   Restore:         C-a + Ctrl+r       Manually restore tmux environment
+#   Auto-save:       Every 15 minutes   Automatic continuous saving
+#   Auto-restore:    On tmux start      Automatic restore when tmux starts
+#   
+#   Features:
+#   - Saves all sessions, windows, panes and their exact layouts
+#   - Preserves working directories and active/alternate windows
+#   - Captures pane contents (terminal output)
+#   - Survives computer restarts - resume exactly where you left off
+#   - No configuration needed - works automatically
+#
+# ==============================================================================
+
+# -- GENERAL SETTINGS ---------------------------------------------------------
 
 set-option -g default-terminal "tmux-256color"
 set-option -sa terminal-overrides ",alacritty:RGB,xterm-256color:RGB"
 set-option -g focus-events on
+
+# Prefix key configuration
 set -g prefix C-a
 unbind C-b
 bind C-a send-prefix
@@ -11,30 +91,39 @@ bind C-a send-prefix
 set -g default-shell {{ if eq .chezmoi.os "darwin" }}"/opt/homebrew/bin/fish"{{ else if eq .chezmoi.os "linux" }}"/usr/bin/fish"{{ else }}"/usr/bin/fish"{{ end }}
 set -g default-command {{ if eq .chezmoi.os "darwin" }}"/opt/homebrew/bin/fish -l"{{ else if eq .chezmoi.os "linux" }}"/usr/bin/fish -l"{{ else }}"/usr/bin/fish -l"{{ end }}
 
-set -g base-index 1
-setw -g pane-base-index 1
+# Window and pane settings
+set -g base-index 0
+setw -g pane-base-index 0
 set -g renumber-windows on
 set -g history-limit 50000
 set -g mouse on
 set -sg escape-time 100
 set -g status-interval 5
 
-# -- DISPLAY ------------------------------------------------------------------
+# Mouse improvements for better scrolling and selection
+set -g @scroll-speed-num-lines-per-scroll 3
+set -g @scroll-without-changing-pane on
+set -g @scroll-in-moused-over-pane on
+
+# -- APPEARANCE ---------------------------------------------------------------
 
 set -g status-position bottom
-set -g status-style bg="#648ad1",fg="#c0caf5"
-set -g status-left "#[fg=#c0caf5,bg=#414868] #S #[fg=#414868,bg=#648ad1,nobold]"
-set -g status-right "#[fg=#414868,bg=#648ad1]#[fg=#c0caf5,bg=#414868] #{?window_zoomed_flag,#[fg=#f7768e] Z ,} #[fg=#e0af68]%Y-%m-%d %H:%M "
+# Catppuccin Mocha theme
+set -g status-style bg="#313244",fg="#cdd6f4"
+set -g status-left "#[fg=#cdd6f4,bg=#45475a] #S #[fg=#45475a,bg=#313244,nobold]"
+set -g status-right "#[fg=#45475a,bg=#313244]#[fg=#cdd6f4,bg=#45475a] #{?window_zoomed_flag,#[fg=#f38ba8] Z ,} #[fg=#f9e2af]%Y-%m-%d %H:%M "
 set -g status-right-length 50
 set -g status-left-length 30
 
-setw -g window-status-current-style fg="#1a1b26",bg="#7dcfff"
-setw -g window-status-current-format "#[fg=#648ad1,bg=#7dcfff]#[fg=#1a1b26,bg=#7dcfff,bold] #I:#W #[fg=#7dcfff,bg=#648ad1,nobold]"
-setw -g window-status-style fg="#8d97b4",bg="#648ad1"
+# Window status
+setw -g window-status-current-style fg="#181825",bg="#89b4fa"
+setw -g window-status-current-format "#[fg=#313244,bg=#89b4fa]#[fg=#181825,bg=#89b4fa,bold] #I:#W #[fg=#89b4fa,bg=#313244,nobold]"
+setw -g window-status-style fg="#bac2de",bg="#313244"
 setw -g window-status-format ' #I:#W '
 
-set -g pane-border-style fg="#8d97b4"
-set -g pane-active-border-style fg="#e0af68"
+# Pane borders
+set -g pane-border-style fg="#6c7086"
+set -g pane-active-border-style fg="#a6e3a1"
 
 # -- CLIPBOARD ----------------------------------------------------------------
 
@@ -47,46 +136,47 @@ set -g @clipboard-cmd "xclip -in -selection clipboard"
 set -g @clipboard-cmd "cat > /dev/null"
 {{ end }}
 
-# -- NAVIGATION & DEVELOPER SHORTCUTS -----------------------------------------
+# -- PANE OPERATIONS ----------------------------------------------------------
 
-# Pane navigation (vim-like, no prefix, aligned with VSCode)
-bind -n C-h select-pane -L
-bind -n C-j select-pane -D
-bind -n C-k select-pane -U
-bind -n C-l select-pane -R
+# Navigation (vim-like)
+bind h select-pane -L
+bind j select-pane -D
+bind k select-pane -U
+bind l select-pane -R
 
-# Window management
-bind t new-window -c "#{pane_current_path}"    # 't' for tab
-bind w choose-tree -Zs                         # 'w' for window overview
-bind n next-window                            # 'n' for next
-bind p previous-window                        # 'p' for previous
-bind C new-session -s "new-session"           # 'C' for create session
-bind S choose-session                         # 'S' for session overview
+# Splitting
+bind s split-window -v -c "#{pane_current_path}"  # Split horizontally
+bind v split-window -h -c "#{pane_current_path}"  # Split vertically
 
-# Pane splitting
-bind s split-window -v -c "#{pane_current_path}"  # 's' for split horizontal
-bind v split-window -h -c "#{pane_current_path}"  # 'v' for split vertical
-bind -n M-s run-shell "tmux split-window -v -p 30 -c '#{pane_current_path}'"  # Alt+s for VSCode-like terminal
-bind -n M-t split-window -h -c "#{pane_current_path}"  # Alt+t for quick terminal
+# Resizing (vim-like with repeatable keys)
+bind -r H resize-pane -L 5
+bind -r J resize-pane -D 3
+bind -r K resize-pane -U 3
+bind -r L resize-pane -R 5
 
-# Pane resizing
+# Resizing (arrow keys - alternative)
 bind -r C-Left resize-pane -L 5
 bind -r C-Right resize-pane -R 5
 bind -r C-Up resize-pane -U 5
 bind -r C-Down resize-pane -D 5
 
-# Quick pane actions
-bind x kill-pane                              # 'x' to close pane
-bind z resize-pane -Z                         # 'z' to zoom/maximize
-bind r rotate-window                          # 'r' to rotate
+# Actions
+bind x kill-pane                              # Close pane
+bind z resize-pane -Z                         # Zoom/maximize pane
+bind r rotate-window                          # Rotate panes
 
-# Developer workflow
-bind e command-prompt -p "Rename window:" "rename-window '%%'"  # 'e' for edit name
-bind R source-file ~/.config/tmux/tmux.conf \; display "Config reloaded"  # 'R' to reload
-bind g run-shell "tmux split-window -h -c '#{pane_current_path}' 'go run .'"  # 'g' for go run
-bind N run-shell "tmux split-window -h -c '#{pane_current_path}' 'npm start'"  # 'N' for npm start
-bind G run-shell "tmux split-window -h -c '#{pane_current_path}' 'lazygit'"  # 'G' for lazygit
-bind c run-shell "tmux split-window -h -c '#{pane_current_path}' 'git commit'"  # 'c' for git commit
+# -- WINDOW OPERATIONS --------------------------------------------------------
+
+bind t new-window -c "#{pane_current_path}"   # New tab/window
+bind w choose-tree -Zs                        # Window overview
+bind n next-window                            # Next window
+bind p previous-window                        # Previous window
+bind e command-prompt -p "Rename window:" "rename-window '%%'"  # Rename window
+
+# -- SESSION OPERATIONS -------------------------------------------------------
+
+bind C new-session -s "new-session"           # Create new session
+bind S choose-session                         # Session overview
 
 # -- COPY MODE ----------------------------------------------------------------
 
@@ -103,9 +193,20 @@ bind -T copy-mode-vi ? command-prompt -p "Search backward:" "send -X search-back
 bind -T copy-mode-vi n send -X search-again
 bind -T copy-mode-vi N send -X search-reverse
 
-# Add bindings for slower mouse wheel scrolling
+# Better mouse wheel scrolling
 bind -T copy-mode-vi WheelUpPane send-keys -X scroll-up
 bind -T copy-mode-vi WheelDownPane send-keys -X scroll-down
+
+# Improved mouse selection - hold shift to select text normally
+bind -n S-DoubleClick1Pane select-pane \; copy-mode -M \; send -X select-word \; run-shell "sleep 0.1" \; send -X copy-pipe-and-cancel "#{@clipboard-cmd}"
+bind -n S-TripleClick1Pane select-pane \; copy-mode -M \; send -X select-line \; run-shell "sleep 0.1" \; send -X copy-pipe-and-cancel "#{@clipboard-cmd}"
+
+# -- DEVELOPER SHORTCUTS ------------------------------------------------------
+
+bind c run-shell "tmux split-window -h -c '#{pane_current_path}' 'git commit'"  # Git commit
+bind g run-shell "tmux split-window -h -c '#{pane_current_path}' 'go run .'"    # Go run
+bind N run-shell "tmux split-window -h -c '#{pane_current_path}' 'npm start'"   # npm start
+bind R source-file ~/.config/tmux/tmux.conf \; display "Config reloaded"       # Reload config
 
 # -- PLUGINS ------------------------------------------------------------------
 
@@ -118,3 +219,25 @@ set -g @resurrect-capture-pane-contents 'on'
 
 setw -g monitor-activity off
 set -g visual-activity off
+
+# -- MOUSE BINDINGS ----------------------------------------------------------
+
+# Right click to select pane and show context menu
+bind -n MouseDown3Pane select-pane -t = \; display-menu -T "#[align=centre]#{pane_index} (#{pane_id})" -t = -x M -y M \
+    "#{?#{>:#{session_windows},1},,-}Swap Left" l "swap-window -t:-1" \
+    "#{?#{>:#{session_windows},1},,-}Swap Right" r "swap-window -t:+1" \
+    "#{?pane_marked_set,,-}Swap Marked" s swap-window \
+    '' \
+    Kill X kill-window \
+    Respawn R "respawn-window -k" \
+    "#{?pane_marked,Unmark,Mark}" m "select-pane -m" \
+    Rename n "command-prompt -I \"#W\" \"rename-window -- '%%'\""
+
+# Double click to select word
+bind -n DoubleClick1Pane select-pane \; copy-mode -M \; send -X select-word
+
+# Triple click to select line  
+bind -n TripleClick1Pane select-pane \; copy-mode -M \; send -X select-line
+
+# Drag to start selection
+bind -n MouseDrag1Pane if -Ft= "#{mouse_any_flag}" "if -Ft= \"#{pane_in_mode}\" \"copy-mode -M\" \"send-keys -M\"" "copy-mode -M"
