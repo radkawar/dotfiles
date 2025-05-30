@@ -62,6 +62,26 @@ function fish_prompt
         end
     end
 
+    # AWS Profile info - format long profiles nicely
+    set aws_info ""
+    if set -q AWS_PROFILE
+        # Handle long AWS profile names like "000000000000/root" or "000000000000/user:dummy"
+        if string match -q "*/*" $AWS_PROFILE
+            set parts (string split "/" $AWS_PROFILE)
+            set account $parts[1]
+            set role $parts[2]
+            # Abbreviate long account numbers: 307946636109 -> 307...109
+            if test (string length $account) -gt 8
+                set account_short (string sub -l 3 $account)"..."(string sub -s -3 $account)
+                set aws_info " "(set_color yellow)"[$account_short/$role]"
+            else
+                set aws_info " "(set_color yellow)"[$AWS_PROFILE]"
+            end
+        else
+            set aws_info " "(set_color yellow)"[$AWS_PROFILE]"
+        end
+    end
+
     # Get terminal width
     set term_width (tput cols)
 
@@ -85,20 +105,20 @@ function fish_prompt
     # Build prompt based on style
     switch $prompt_style
         case "single-line" "compact"
-            # Original single-line style with improvements
+            # Original single-line style - clean, status/duration moved to right prompt
             if test $term_width -lt 120
-                echo -n (set_color cyan)"[$time]" (set_color yellow)" $shortened_path"$git_info$status_string$duration_string (set_color normal)"❯ "
+                echo -n (set_color cyan)"[$time]" (set_color yellow)" $shortened_path"$git_info (set_color normal)"❯ "
             else
-                echo -n (set_color cyan)"[$time]" (set_color green)" $initial@$ip" (set_color yellow)" $shortened_path"$git_info$status_string$duration_string (set_color normal)"❯ "
+                echo -n (set_color cyan)"[$time]" (set_color green)" $initial@$ip" (set_color yellow)" $shortened_path"$git_info (set_color normal)"❯ "
             end
             
         case "minimal"
-            # Minimal single-line style
+            # Minimal single-line style - no time, just essentials
             echo -n (set_color blue)(basename $full_path)$git_info (set_color normal)"❯ "
             
         case "*"
-            # Two-line style (default)
-            # First line: comprehensive info
+            # Two-line style (default) - clean and consistent
+            # First line: core info
             echo -n (set_color cyan)"┌─[" (set_color white)"$time" (set_color cyan)"]"
             if test $term_width -ge 100
                 echo -n (set_color cyan)"─[" (set_color green)"$initial@$ip" (set_color cyan)"]"
@@ -107,10 +127,22 @@ function fish_prompt
             if test -n "$git_info"
                 echo -n $git_info
             end
-            echo -n $status_string
+            
+            # Right side info - only show what's relevant
+            set -l info_parts
             if test -n "$duration_string"
-                echo -n $duration_string
+                set info_parts $info_parts $duration_string
             end
+            if test $last_status -ne 0
+                set info_parts $info_parts " "(set_color red)"✗"
+            end
+            
+            if test (count $info_parts) -gt 0
+                for part in $info_parts
+                    echo -n $part
+                end
+            end
+            
             echo (set_color normal)
             
             # Second line: clean input prompt
