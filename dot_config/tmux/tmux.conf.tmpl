@@ -20,13 +20,15 @@
 #   Management:      C-a + t            New tab/window
 #                    C-a + n            Next window
 #                    C-a + p            Previous window  
-#                    C-a + w            Choose window (tree view)
+#                    C-a + w            Choose window (tree view: 'x' to kill)
 #                    C-a + e            Rename current window
+#                    C-a + W            Kill current window
 #                    C-a + 0-9          Switch to window number (0-9)
 #
 # SESSION OPERATIONS:
 #   Management:      C-a + C            Create new session
-#                    C-a + S            Choose session (interactive)
+#                    C-a + S            Choose session (tree view: 'x' to kill)
+#                    C-a + X            Kill current session
 #                    C-a + d            Detach from session
 #                    C-a + $            Rename current session
 #
@@ -171,15 +173,17 @@ bind r rotate-window                          # Rotate panes
 # -- WINDOW OPERATIONS --------------------------------------------------------
 
 bind t new-window -c "#{pane_current_path}"   # New tab/window
-bind w choose-tree -Zs                        # Window overview
+bind w choose-tree -Zs -K                     # Window overview (x to kill)
 bind n next-window                            # Next window
 bind p previous-window                        # Previous window
 bind e command-prompt -p "Rename window:" "rename-window '%%'"  # Rename window
+bind W kill-window                            # Kill current window
 
 # -- SESSION OPERATIONS -------------------------------------------------------
 
 bind C new-session -s "new-session"           # Create new session
-bind S choose-session                         # Session overview
+bind S choose-tree -s -K                      # Session overview (x to kill)
+bind X kill-session                           # Kill current session
 
 # -- COPY MODE ----------------------------------------------------------------
 
@@ -187,7 +191,7 @@ set -g mode-keys vi
 bind Space copy-mode
 bind -T copy-mode-vi v send -X begin-selection
 bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "#{@clipboard-cmd}"
-bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe-and-cancel "#{@clipboard-cmd}"
+bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe "#{@clipboard-cmd}"
 
 # Paste from system clipboard
 bind ] run "pbpaste | tmux load-buffer - && tmux paste-buffer"
@@ -207,11 +211,19 @@ bind -T copy-mode-vi WheelDownPane send-keys -X scroll-down
 bind -n S-DoubleClick1Pane select-pane \; copy-mode -M \; send -X select-word \; run-shell "sleep 0.1" \; send -X copy-pipe-and-cancel "#{@clipboard-cmd}"
 bind -n S-TripleClick1Pane select-pane \; copy-mode -M \; send -X select-line \; run-shell "sleep 0.1" \; send -X copy-pipe-and-cancel "#{@clipboard-cmd}"
 
+# Fix mouse selection behavior - prevent snapping back
+bind -T copy-mode-vi MouseDrag1Pane send-keys -X begin-selection
+bind -T copy-mode-vi MouseUp1Pane send-keys -X copy-selection-no-clear
+
+# Keep scroll position after mouse selection
+set -g @copy_mode_keep_selection on
+set -g @copy_mode_yank_stays_in_copy_mode on
+
 # -- DEVELOPER SHORTCUTS ------------------------------------------------------
 
-bind c run-shell "tmux split-window -h -c '#{pane_current_path}' 'git commit'"  # Git commit
-bind g run-shell "tmux split-window -h -c '#{pane_current_path}' 'go run .'"    # Go run
-bind N run-shell "tmux split-window -h -c '#{pane_current_path}' 'npm start'"   # npm start
+bind c send-keys "git commit" Enter                                             # Git commit
+bind g send-keys "go run ." Enter                                               # Go run
+bind N send-keys "npm start" Enter                                              # npm start
 bind R source-file ~/.config/tmux/tmux.conf \; display "Config reloaded"       # Reload config
 
 # -- PLUGINS ------------------------------------------------------------------
@@ -245,5 +257,5 @@ bind -n DoubleClick1Pane select-pane \; copy-mode -M \; send -X select-word
 # Triple click to select line  
 bind -n TripleClick1Pane select-pane \; copy-mode -M \; send -X select-line
 
-# Drag to start selection
-bind -n MouseDrag1Pane if -Ft= "#{mouse_any_flag}" "if -Ft= \"#{pane_in_mode}\" \"copy-mode -M\" \"send-keys -M\"" "copy-mode -M"
+# Drag to start selection - simplified to prevent jumping
+bind -n MouseDrag1Pane copy-mode -M \; send-keys -X begin-selection
