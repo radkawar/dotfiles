@@ -13,8 +13,8 @@
 #   Actions:         C-a + x            Kill current pane
 #                    C-a + z            Zoom/maximize current pane
 #                    C-a + r            Rotate panes
-#                    C-a + p            Select pane (interactive)
-#                    C-a + q            Show pane numbers
+#                    C-a + P            Display pane numbers
+#                    C-a + q            Display pane numbers (and select)
 #
 # WINDOW OPERATIONS:
 #   Management:      C-a + t            New tab/window
@@ -34,7 +34,6 @@
 #
 # COPY MODE:
 #   Enter:           C-a + Space        Enter copy mode
-#                    C-a + [            Enter copy mode (alternative)
 #   Navigation:      h/j/k/l            Move cursor
 #                    H/L                Start/end of line
 #                    /                  Search forward
@@ -54,13 +53,14 @@
 #   Context:         Right-click        Show context menu
 #
 # DEVELOPER SHORTCUTS:
-#   Git:             C-a + c            Git commit (new pane)
-#   Go:              C-a + g            Go run . (new pane)
-#   Node:            C-a + N            npm start (new pane)
+#   Git:             C-a + G            Git commit (current pane)
+#   Go:              C-a + g            Go run . (current pane)
+#   Node:            C-a + N            npm start (current pane)
 #   Config:          C-a + R            Reload tmux config
 #
 # SYSTEM:
-#   Help:            C-a + ?            List all key bindings
+#   Help:            C-a + ?            List all key bindings  
+#   Display panes:   C-a + P            Show pane numbers briefly
 #   Command:         C-a + :            Enter tmux command prompt
 #
 # PLUGINS (tmux-resurrect & tmux-continuum):
@@ -168,12 +168,13 @@ bind -r C-Down resize-pane -D 5
 # Actions
 bind x kill-pane                              # Close pane
 bind z resize-pane -Z                         # Zoom/maximize pane
-bind r rotate-window                          # Rotate panes
+bind r rotate-window
+bind P display-panes                          # Rotate panes
 
 # -- WINDOW OPERATIONS --------------------------------------------------------
 
 bind t new-window -c "#{pane_current_path}"   # New tab/window
-bind w choose-tree -Zs -K                     # Window overview (x to kill)
+bind w choose-tree -KZs                       # Window overview (x to kill)
 bind n next-window                            # Next window
 bind p previous-window                        # Previous window
 bind e command-prompt -p "Rename window:" "rename-window '%%'"  # Rename window
@@ -182,7 +183,7 @@ bind W kill-window                            # Kill current window
 # -- SESSION OPERATIONS -------------------------------------------------------
 
 bind C new-session -s "new-session"           # Create new session
-bind S choose-tree -s -K                      # Session overview (x to kill)
+bind S choose-tree -Ks                        # Session overview (x to kill)
 bind X kill-session                           # Kill current session
 
 # -- COPY MODE ----------------------------------------------------------------
@@ -194,7 +195,14 @@ bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "#{@clipboard-cmd}"
 bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe "#{@clipboard-cmd}"
 
 # Paste from system clipboard
-bind ] run "pbpaste | tmux load-buffer - && tmux paste-buffer"
+{{ if eq .chezmoi.os "darwin" }}
+bind ] run-shell "pbpaste | tmux load-buffer - && tmux paste-buffer -p"
+{{ else if eq .chezmoi.os "linux" }}
+bind ] run-shell "xclip -o -selection clipboard | tmux load-buffer - && tmux paste-buffer -p"
+{{ else }}
+bind ] paste-buffer -p
+{{ end }}
+
 bind -T copy-mode-vi Escape send -X cancel
 bind -T copy-mode-vi H send -X start-of-line
 bind -T copy-mode-vi L send -X end-of-line
@@ -215,16 +223,15 @@ bind -n S-TripleClick1Pane select-pane \; copy-mode -M \; send -X select-line \;
 bind -T copy-mode-vi MouseDrag1Pane send-keys -X begin-selection
 bind -T copy-mode-vi MouseUp1Pane send-keys -X copy-selection-no-clear
 
-# Keep scroll position after mouse selection
-set -g @copy_mode_keep_selection on
-set -g @copy_mode_yank_stays_in_copy_mode on
+# Mouse selection stays in copy mode after copying
 
 # -- DEVELOPER SHORTCUTS ------------------------------------------------------
 
-bind c send-keys "git commit" Enter                                             # Git commit
-bind g send-keys "go run ." Enter                                               # Go run
-bind N send-keys "npm start" Enter                                              # npm start
-bind R source-file ~/.config/tmux/tmux.conf \; display "Config reloaded"       # Reload config
+bind c new-window -c "#{pane_current_path}"   # New window (default behavior)
+bind G send-keys "git commit" Enter           # Git commit
+bind g send-keys "go run ." Enter             # Go run  
+bind N send-keys "npm start" Enter            # npm start
+bind R source-file {{ .chezmoi.homeDir }}/.config/tmux/tmux.conf \; display "Config reloaded"       # Reload config
 
 # -- PLUGINS ------------------------------------------------------------------
 
@@ -237,6 +244,10 @@ set -g @resurrect-capture-pane-contents 'on'
 
 setw -g monitor-activity off
 set -g visual-activity off
+
+# -- SYSTEM BINDINGS ----------------------------------------------------------
+
+bind ? list-keys                              # Show all key bindings
 
 # -- MOUSE BINDINGS ----------------------------------------------------------
 
