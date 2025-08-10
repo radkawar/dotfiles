@@ -1,5 +1,19 @@
 # Dotfiles
 
+<!--toc:start-->
+
+- [Dotfiles](#dotfiles)
+  - [Installation](#installation)
+    - [macOS](#macos)
+    - [Linux (Ubuntu/Debian)](#linux-ubuntudebian)
+  - [OS-Specific Handling](#os-specific-handling)
+  - [Package Differences](#package-differences)
+    - [Core packages (all systems):](#core-packages-all-systems)
+    - [macOS-only:](#macos-only)
+    - [Linux servers (minimal):](#linux-servers-minimal)
+  - [Key Files](#key-files)
+  <!--toc:end-->
+
 Cross-platform dotfiles managed with [chezmoi](https://www.chezmoi.io/).
 
 ## Installation
