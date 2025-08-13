@@ -24,6 +24,7 @@
 #                    C-a + e            Rename current window
 #                    C-a + W            Kill current window
 #                    C-a + 0-9          Switch to window number (0-9)
+#                    C-a + b            Next layout (cycle through layouts)
 #
 # SESSION OPERATIONS:
 #   Management:      C-a + C            Create new session
@@ -224,6 +225,7 @@ bind -T copy-mode-vi MouseDrag1Pane send-keys -X begin-selection
 bind -T copy-mode-vi MouseUp1Pane send-keys -X copy-selection-no-clear
 
 # Mouse selection stays in copy mode after copying
+bind-key -T prefix b next-layout
 
 # -- DEVELOPER SHORTCUTS ------------------------------------------------------
 
