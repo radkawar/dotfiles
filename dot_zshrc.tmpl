@@ -1,0 +1,75 @@
+export ZSH="$HOME/.oh-my-zsh"
+
+ZSH_THEME="robbyrussell"
+
+plugins=(
+    git
+    docker
+    docker-compose
+    kubectl
+    terraform
+    aws
+    z
+    fzf
+    sudo
+    command-not-found
+    zsh-autosuggestions
+    zsh-syntax-highlighting
+)
+
+source $ZSH/oh-my-zsh.sh
+
+{{ if eq .chezmoi.os "darwin" }}
+eval "$(/opt/homebrew/bin/brew shellenv)"
+{{ else if eq .chezmoi.os "linux" }}
+export PATH="$HOME/.local/bin:$PATH"
+{{ end }}
+
+export PATH="$HOME/go/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
+
+export EDITOR=nvim
+export VISUAL=nvim
+
+alias vim='nvim'
+alias vi='nvim'
+alias ls='ls --color=auto'
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
+alias gs='git status'
+alias ga='git add'
+alias gc='git commit'
+alias gp='git push'
+alias gpl='git pull'
+alias gco='git checkout'
+alias gb='git branch'
+alias gd='git diff'
+
+alias tf='terraform'
+alias tfi='terraform init'
+alias tfp='terraform plan'
+alias tfa='terraform apply'
+
+alias k='kubectl'
+alias kgp='kubectl get pods'
+alias kgs='kubectl get services'
+alias kgd='kubectl get deployments'
+
+alias dc='docker-compose'
+alias dps='docker ps'
+alias dpa='docker ps -a'
+alias di='docker images'
+
+if command -v fzf &> /dev/null; then
+    [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
+fi
+
+if [ -f ~/.zsh_local ]; then
+    source ~/.zsh_local
+fi
+
+if command -v mise &> /dev/null; then
+    eval "$(mise activate zsh)"
+fi

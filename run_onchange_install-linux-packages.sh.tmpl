@@ -7,8 +7,15 @@ echo "Installing packages for Linux..."
 # Update package list
 sudo apt update
 
+if dpkg -l | grep -q "^ii.*neovim"; then
+    echo "Removing old neovim packages..."
+    sudo apt remove -y neovim neovim-runtime
+    sudo apt autoremove -y
+fi
+
 # Core development tools
 CORE_PACKAGES=(
+    unzip
     build-essential
     curl
     fd-find
@@ -16,13 +23,11 @@ CORE_PACKAGES=(
     git
     golang
     jq
-    neovim
-    nodejs
-    npm
     python3-pip
     ripgrep
     tmux
     wget
+    zsh
 )
 
 # Server-specific packages (minimal set)
@@ -85,12 +90,64 @@ fi
 # Install fzf
 if ! command -v fzf &> /dev/null; then
     git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf
-    ~/.fzf/install --all --no-zsh --no-bash
+    ~/.fzf/install --all --no-bash
+fi
+
+# Install mise
+if ! command -v mise &> /dev/null; then
+    curl https://mise.run | sh
+    echo 'eval "$(~/.local/bin/mise activate bash)"' >> ~/.bashrc
+fi
+
+# Install usage CLI (required for mise completions)
+if ! command -v usage &> /dev/null; then
+    curl -sSL https://usage.jdx.dev/install.sh | sh
+fi
+
+# Setup mise global tools
+if command -v mise &> /dev/null; then
+    echo "Setting up mise global tools..."
+    mise use --global node@latest
+    mise use --global python@latest
+fi
+
+if ! command -v nvim &> /dev/null || [ $(nvim --version | head -1 | grep -oP '\d+\.\d+' | awk -F. '{print ($1 * 100 + $2)}') -lt 1102 ]; then
+    echo "Installing latest Neovim..."
+    NVIM_RELEASE=$(curl -s https://api.github.com/repos/neovim/neovim/releases/latest | jq -r '.tag_name')
+    ARCH=$(uname -m)
+
+    if [ "$ARCH" = "aarch64" ] || [ "$ARCH" = "arm64" ]; then
+        NVIM_ARCH="linux-arm64"
+    else
+        NVIM_ARCH="linux-x86_64"
+    fi
+
+    DOWNLOAD_URL="https://github.com/neovim/neovim/releases/download/${NVIM_RELEASE}/nvim-${NVIM_ARCH}.tar.gz"
+
+    if wget -q "$DOWNLOAD_URL" -O nvim.tar.gz; then
+        sudo rm -rf /opt/nvim-*
+        sudo tar -C /opt -xzf nvim.tar.gz
+        sudo ln -sf /opt/nvim-${NVIM_ARCH}/bin/nvim /usr/local/bin/nvim
+        rm nvim.tar.gz
+        echo "Neovim ${NVIM_RELEASE} installed successfully"
+    else
+        echo "Failed to download Neovim"
+    fi
 fi
 
 # Create fd symlink (fd-find installs as fdfind on Ubuntu)
 if command -v fdfind &> /dev/null && ! command -v fd &> /dev/null; then
     sudo ln -s $(which fdfind) /usr/local/bin/fd
+fi
+
+if ! command -v docker &> /dev/null; then
+    echo "Installing Docker..."
+    curl -fsSL https://get.docker.com | sh
+    sudo usermod -aG docker $USER
+    sudo apt-get install -y uidmap
+    sudo systemctl enable docker
+    sudo systemctl start docker
+    echo "Docker installed. You may need to log out and back in for group changes to take effect."
 fi
 
 echo "Linux package installation complete!"

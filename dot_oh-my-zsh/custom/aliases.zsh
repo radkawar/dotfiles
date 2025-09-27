@@ -1,0 +1,10 @@
+alias reload='source ~/.zshrc'
+alias zshconfig='chezmoi edit ~/.zshrc'
+alias ohmyzsh='cd ~/.oh-my-zsh'
+
+alias cm='chezmoi'
+alias cme='chezmoi edit'
+alias cma='chezmoi apply'
+alias cmd='chezmoi diff'
+alias cms='chezmoi status'
+alias cmu='chezmoi update'
