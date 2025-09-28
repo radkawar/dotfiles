@@ -193,7 +193,6 @@ set -g mode-keys vi
 bind Space copy-mode
 bind -T copy-mode-vi v send -X begin-selection
 bind -T copy-mode-vi y send-keys -X copy-pipe-and-cancel "#{@clipboard-cmd}"
-bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-pipe "#{@clipboard-cmd}"
 
 # Paste from system clipboard
 {{ if eq .chezmoi.os "darwin" }}
@@ -216,15 +215,18 @@ bind -T copy-mode-vi N send -X search-reverse
 bind -T copy-mode-vi WheelUpPane send-keys -X scroll-up
 bind -T copy-mode-vi WheelDownPane send-keys -X scroll-down
 
-# Improved mouse selection - hold shift to select text normally
-bind -n S-DoubleClick1Pane select-pane \; copy-mode -M \; send -X select-word \; run-shell "sleep 0.1" \; send -X copy-pipe-and-cancel "#{@clipboard-cmd}"
-bind -n S-TripleClick1Pane select-pane \; copy-mode -M \; send -X select-line \; run-shell "sleep 0.1" \; send -X copy-pipe-and-cancel "#{@clipboard-cmd}"
+# Improved mouse selection - more natural behavior
+# Double-click to select word (no auto-copy)
+bind -n DoubleClick1Pane select-pane \; copy-mode -M \; send -X select-word
 
-# Fix mouse selection behavior - prevent snapping back
+# Triple-click to select line (no auto-copy)  
+bind -n TripleClick1Pane select-pane \; copy-mode -M \; send -X select-line
+
+# Natural mouse selection - don't auto-copy on release
 bind -T copy-mode-vi MouseDrag1Pane send-keys -X begin-selection
-bind -T copy-mode-vi MouseUp1Pane send-keys -X copy-selection-no-clear
+bind -T copy-mode-vi MouseDragEnd1Pane send-keys -X copy-selection-no-clear
 
-# Mouse selection stays in copy mode after copying
+# Layout switching
 bind-key -T prefix b next-layout
 
 # -- DEVELOPER SHORTCUTS ------------------------------------------------------
@@ -264,11 +266,5 @@ bind -n MouseDown3Pane select-pane -t = \; display-menu -T "#[align=centre]#{pan
     "#{?pane_marked,Unmark,Mark}" m "select-pane -m" \
     Rename n "command-prompt -I \"#W\" \"rename-window -- '%%'\""
 
-# Double click to select word
-bind -n DoubleClick1Pane select-pane \; copy-mode -M \; send -X select-word
-
-# Triple click to select line  
-bind -n TripleClick1Pane select-pane \; copy-mode -M \; send -X select-line
-
-# Drag to start selection - simplified to prevent jumping
+# Simple click and drag to select text (entering copy mode automatically)
 bind -n MouseDrag1Pane copy-mode -M \; send-keys -X begin-selection

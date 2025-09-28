@@ -28,7 +28,7 @@ function fish_prompt
     # Current date
     set date_str (date "+%m/%d")
     
-    # Get shortened path: /U/D/dev → full last folder
+    # Get shortened path: show full current and previous folder, abbreviate the rest
     set full_path (pwd)
     set home (echo $HOME)
     if string match -q "$home*" $full_path
@@ -38,12 +38,15 @@ function fish_prompt
     set shortened_path ""
     for i in (seq (count $parts))
         set part $parts[$i]
-        if test $i -lt (count $parts)
+        # Show last two folders in full, abbreviate the rest
+        if test $i -ge (math (count $parts) - 1)
+            if test -n "$part"
+                set shortened_path "$shortened_path/$part"
+            end
+        else
             if test -n "$part"
                 set shortened_path "$shortened_path/"(string sub -l 1 $part)
             end
-        else
-            set shortened_path "$shortened_path/$part"
         end
     end
     
@@ -52,12 +55,27 @@ function fish_prompt
     if type -q git
         set branch (command git rev-parse --abbrev-ref HEAD 2>/dev/null)
         if test -n "$branch"
+            # Shorten long branch names
+            set display_branch $branch
+            if test (string length $branch) -gt 20
+                # For feature/long-branch-name -> feat/long-bra...
+                if string match -q "*/*" $branch
+                    set parts (string split "/" $branch)
+                    set prefix (string sub -l 4 $parts[1])
+                    set suffix (string sub -l 10 $parts[2])
+                    set display_branch "$prefix/$suffix..."
+                else
+                    # For regular long branch -> long-bra...
+                    set display_branch (string sub -l 15 $branch)"..."
+                end
+            end
+            
             # Check if there are uncommitted changes
             set git_status (command git status --porcelain 2>/dev/null)
             if test -n "$git_status"
-                set git_info " "(set_color magenta)"[$branch*]"
+                set git_info " "(set_color magenta)"[$display_branch*]"
             else
-                set git_info " "(set_color magenta)"[$branch]"
+                set git_info " "(set_color magenta)"[$display_branch]"
             end
         end
     end
@@ -119,11 +137,11 @@ function fish_prompt
         case "*"
             # Two-line style (default) - clean and consistent
             # First line: core info
-            echo -n (set_color cyan)"┌─[" (set_color white)"$time" (set_color cyan)"]"
+            echo -n (set_color cyan)"[" (set_color white)"$time" (set_color cyan)"]"
             if test $term_width -ge 100
-                echo -n (set_color cyan)"─[" (set_color green)"$initial@$ip" (set_color cyan)"]"
+                echo -n (set_color cyan)" [" (set_color green)"$initial@$ip" (set_color cyan)"]"
             end
-            echo -n (set_color cyan)"─[" (set_color yellow)"$shortened_path" (set_color cyan)"]"
+            echo -n (set_color cyan)" [" (set_color yellow)"$shortened_path" (set_color cyan)"]"
             if test -n "$git_info"
                 echo -n $git_info
             end
@@ -134,7 +152,7 @@ function fish_prompt
                 set info_parts $info_parts $duration_string
             end
             if test $last_status -ne 0
-                set info_parts $info_parts " "(set_color red)"✗"
+                set info_parts $info_parts " "(set_color red)"X"
             end
             
             if test (count $info_parts) -gt 0
@@ -146,6 +164,6 @@ function fish_prompt
             echo (set_color normal)
             
             # Second line: clean input prompt
-            echo -n (set_color cyan)"└─❯ "(set_color normal)
+            echo -n (set_color cyan)"> "(set_color normal)
     end
 end
